@@ -43,6 +43,8 @@ export default function CategoriesTable() {
 	});
 
 	async function deleteCategory() {
+		if (categoryTodelete === null) return;
+
 		try {
 			setIsDeleting(true);
 
@@ -137,7 +139,9 @@ export default function CategoriesTable() {
 								<span>{d.name}</span>
 								<div className="flex items-center gap-5">
 									<AppButton
-										onClick={() => setCategoryTodelete(d.id)}
+										onClick={() => {
+											if (d.id !== undefined) setCategoryTodelete(d.id);
+										}}
 										className="!w-[100px] !bg-[#ed323730] items-center gap-2">
 										<DeleteIcon />
 										<span className="text-primary">Delete</span>
