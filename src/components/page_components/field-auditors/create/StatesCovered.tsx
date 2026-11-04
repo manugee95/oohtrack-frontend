@@ -17,10 +17,10 @@ export default function StatesCovered({
 }) {
 	const { accessToken } = useCredentials();
 
-	const { data, isLoading } = useQuery({
+	const { data, isLoading, isError } = useQuery({
 		queryKey: ["states"],
 		queryFn: async () => {
-			const response = await ApiInstance.get("/api/states", {
+			const response = await ApiInstance.get("/states", {
 				headers: {
 					"auth-token": accessToken,
 				},
@@ -30,6 +30,7 @@ export default function StatesCovered({
 		},
 		gcTime: Infinity,
 	});
+	const states: State[] = Array.isArray(data) ? data : [];
 
 	return (
 		<div className="w-full flex flex-col gap-y-5">
@@ -44,7 +45,11 @@ export default function StatesCovered({
 									className="p-3 w-[90px] h-[34px] rounded-xl flex items-center gap-3 bg-[#e2e2e2] animate-pulse text-2xl"
 									type="button"></button>
 							))
-					: data.map((d: State, index: number) => {
+					: isError
+					? <p className="text-2xl text-primary">Could not load states. Please try again.</p>
+					: states.length === 0
+					? <p className="text-2xl text-[#8D8D8D]">No states are currently available.</p>
+					: states.map((d: State, index: number) => {
 							// @ts-ignore
 							const isSelected = selectedStates.includes(d.id);
 							return (
