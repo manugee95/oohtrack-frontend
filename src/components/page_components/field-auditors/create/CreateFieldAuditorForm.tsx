@@ -4,6 +4,7 @@ import { ErrorMessage, Form, Formik, FormikHelpers } from "formik";
 import AppButton from "@/components/shared/AppButton";
 import AppInput from "@/components/shared/AppInput";
 import StatesCovered from "./StatesCovered";
+import CitiesCovered from "./CitiesCovered";
 import useUserManagement from "@/hooks/useUserManagement";
 import { FieldAuditor } from "@/types";
 import useAlert from "@/hooks/useAlert";
@@ -25,6 +26,10 @@ const schema = Yup.object().shape({
 		.min(1)
 		.required()
 		.label("States Covered"),
+	citiesCovered: Yup.array(Yup.number())
+		.min(1, "Select at least one city")
+		.required()
+		.label("Cities Covered"),
 });
 
 interface FieldAuditorFormProps {
@@ -43,6 +48,7 @@ export default function CreateFieldAuditorForm({
 		address: "",
 		role: "FIELD_AUDITOR",
 		statesCovered: [],
+		citiesCovered: [],
 	},
 	editCallback,
 }: FieldAuditorFormProps) {
@@ -157,11 +163,23 @@ export default function CreateFieldAuditorForm({
 									let prev = [...values.statesCovered];
 									prev = prev.filter((d) => d !== val);
 									setFieldValue("statesCovered", prev);
+									setFieldValue("citiesCovered", []);
 								}}
 							/>
 							<ErrorMessage
 								name="statesCovered"
 								component={"p"}
+								className="text-2xl font-medium text-red-400"
+							/>
+							<CitiesCovered
+								selectedStates={values.statesCovered.map((state) => Number(typeof state === "number" ? state : state.id))}
+								selectedCities={(values.citiesCovered ?? []).map((city) => Number(typeof city === "number" ? city : city.id))}
+								addCity={(cityId) => setFieldValue("citiesCovered", [...(values.citiesCovered ?? []), cityId])}
+								removeCity={(cityId) => setFieldValue("citiesCovered", (values.citiesCovered ?? []).filter((city) => Number(typeof city === "number" ? city : city.id) !== cityId))}
+							/>
+							<ErrorMessage
+								name="citiesCovered"
+								component="p"
 								className="text-2xl font-medium text-red-400"
 							/>
 						</div>

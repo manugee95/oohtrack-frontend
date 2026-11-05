@@ -11,7 +11,6 @@ import useAuth from "@/hooks/useAuth";
 import { LoginData } from "@/types";
 import useAlert from "@/hooks/useAlert";
 import { AxiosError } from "axios";
-import { useRouter } from "next/navigation";
 import useCredentials from "@/hooks/useCredentials";
 
 const schema = Yup.object().shape({
@@ -26,8 +25,6 @@ export default function LoginForm() {
 	const { login } = useAuth();
 	const { showAndHideAlert } = useAlert();
 	const { setCredentials } = useCredentials();
-	const router = useRouter();
-
 	const initialValues: LoginData = {
 		email: "",
 		password: "",
@@ -44,7 +41,7 @@ export default function LoginForm() {
 				message: "Logged in successfully",
 				type: "success",
 			});
-			router.replace("/");
+			window.location.replace("/");
 		} catch (error) {
 			const err = error as AxiosError;
 			console.log(err);

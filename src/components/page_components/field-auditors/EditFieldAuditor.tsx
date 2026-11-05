@@ -24,6 +24,12 @@ export default function EditFieldAuditor({
 	const queryClient = useQueryClient();
 
 	const [showEdit, setShowEdit] = useState(false);
+	const stateIds = (fieldAuditor.statesCovered ?? []).map((state) =>
+		typeof state === "number" ? state : state.id
+	).filter((id): id is number => typeof id === "number");
+	const cityIds = (fieldAuditor.citiesCovered ?? []).map((city) =>
+		typeof city === "number" ? city : city.id
+	).filter((id): id is number => typeof id === "number");
 
 	if (!["SUPER_ADMIN", "CHIEF_ACCOUNT_MANAGER"].includes(userDetails?.role!)) {
 		return;
@@ -42,8 +48,8 @@ export default function EditFieldAuditor({
 				<CreateFieldAuditorForm
 					initialValues={{
 						...fieldAuditor,
-						//@ts-ignore
-						statesCovered: fieldAuditor.statesCovered.map((d) => d.id),
+						statesCovered: stateIds,
+						citiesCovered: cityIds,
 						phone: fieldAuditor.phone ?? "",
 					}}
 					isEditing

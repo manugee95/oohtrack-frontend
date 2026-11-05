@@ -10,9 +10,14 @@ import { useRouter } from "next/navigation";
 import * as Yup from "yup";
 import { ApiInstance } from "@/utils";
 import useCredentials from "@/hooks/useCredentials";
+import AdvertiserCategory from "./AdvertiserCategory";
 
 const schema = Yup.object().shape({
 	name: Yup.string().required().label("Name"),
+	categoryIds: Yup.array(Yup.number())
+		.min(1, "Select at least one category")
+		.required()
+		.label("Categories"),
 });
 
 interface AdvertiserFormProps {
@@ -26,6 +31,7 @@ export default function CreateAdvertiserForm({
 	isEditing,
 	initialValues = {
 		name: "",
+	categoryIds: [],
 	},
 	advertiserId,
 	editCallback,
@@ -39,8 +45,16 @@ export default function CreateAdvertiserForm({
 		{ setSubmitting }: FormikHelpers<Advertiser>
 	) => {
 		try {
+			const payload: Advertiser = {
+				...values,
+				categoryIds: (values.categoryIds ?? []).map(Number),
+			};
+			delete payload.category;
+			delete payload.categories;
+			delete payload.categoryId;
+
 			if (!isEditing) {
-				await ApiInstance.post("/api/advertisers", values, {
+				await ApiInstance.post("/api/advertisers", payload, {
 					headers: {
 						"auth-token": accessToken,
 					},
@@ -57,7 +71,7 @@ export default function CreateAdvertiserForm({
 			} else {
 				const res = await ApiInstance.put(
 					"/api/advertiser/" + advertiserId,
-					values,
+					payload,
 					{
 						headers: {
 							"auth-token": accessToken,
@@ -101,7 +115,18 @@ export default function CreateAdvertiserForm({
 
 			<Formik
 				validationSchema={schema}
-				initialValues={initialValues}
+				initialValues={{
+					...initialValues,
+					categoryIds:
+						initialValues.categoryIds ??
+						(initialValues.categories?.length
+							? initialValues.categories.map((category) => category.id!).filter(Boolean)
+							: initialValues.categoryId != null
+								? [initialValues.categoryId]
+								: initialValues.category?.id != null
+									? [initialValues.category.id]
+									: []),
+				}}
 				onSubmit={submitHandler}>
 				{({ isSubmitting, isValidating }) => (
 					<Form className="w-full flex flex-col gap-y-10 mt-8 px-12 pb-12">
@@ -110,6 +135,7 @@ export default function CreateAdvertiserForm({
 								<AppInput label="Name" name="name" placeholder="Name" />
 							</div>
 						</div>
+						<AdvertiserCategory />
 						<AppButton
 							className="font-semibold"
 							fullyRounded

@@ -30,6 +30,7 @@ export interface AccountManager extends User {
 export interface FieldAuditor extends User {
 	role: "FIELD_AUDITOR";
 	statesCovered: number[] | State[];
+	citiesCovered?: number[] | City[];
 }
 
 export interface Client extends User {
@@ -65,6 +66,10 @@ export interface City {
 export interface Advertiser {
 	id?: number;
 	name: string;
+	categoryId?: number | string;
+	categoryIds?: Array<number | string>;
+	category?: Category;
+	categories?: Category[];
 }
 
 export interface Category {

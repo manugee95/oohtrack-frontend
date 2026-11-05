@@ -14,11 +14,26 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import useUserManagement from "@/hooks/useUserManagement";
 import AccountManagerPlaceholder from "@/components/shared/AccountManagerPlaceholder";
 import EmptyTableRow from "@/components/shared/EmptyTableRow";
+import { ApiInstance } from "@/utils";
+import useCredentials from "@/hooks/useCredentials";
+import { State } from "@/types";
 
 export default function FieldAuditorsTable() {
 	const { getUsers, getFieldAuditors } = useUserManagement();
+	const { accessToken } = useCredentials();
 	const [currentPage, setCurrentPage] = useState(1);
 	const [search, setSearch] = useState("");
+	const { data: statesData } = useQuery({
+		queryKey: ["states"],
+		queryFn: async () => {
+			const response = await ApiInstance.get("/states", {
+				headers: { "auth-token": accessToken },
+			});
+			return response.data;
+		},
+		gcTime: Infinity,
+	});
+	const states: State[] = Array.isArray(statesData) ? statesData : [];
 
 	const { data, isLoading, error, isFetching } = useQuery({
 		queryKey: ["fieldAuditors", currentPage, search],
@@ -54,6 +69,9 @@ export default function FieldAuditorsTable() {
 							</th>
 							<th className="text-left">
 								<span className="text-2xl font-semibold">Email</span>
+							</th>
+							<th className="text-left">
+								<span className="text-2xl font-semibold">States Covered</span>
 							</th>
 							<th className="text-left">
 								<span className="text-2xl font-semibold">Active</span>
@@ -110,6 +128,18 @@ export default function FieldAuditorsTable() {
 												{d.email}
 											</span>
 										</td>
+										<td>
+											<span className="block text-2xl font-medium max-w-[240px]">
+											{(Array.isArray(d.statesCovered) ? d.statesCovered : [])
+													.map((state: number | string | State) => {
+														if (typeof state === "object" && state?.name) return state.name;
+														const stateId = Number(state);
+														return states.find((item) => Number(item.id) === stateId)?.name;
+													})
+													.filter(Boolean)
+													.join(", ") || "-"}
+												</span>
+										</td>
 										<td className="">
 											<DeactivateFieldAuditor user={d} userId={d.id} asSwitch />
 										</td>
@@ -143,7 +173,7 @@ export default function FieldAuditorsTable() {
 										</td>
 									</tr>
 							  ))
-							: <EmptyTableRow colSpan={7} />}
+							: <EmptyTableRow colSpan={8} />}
 					</tbody>
 				</table>
 			</div>
