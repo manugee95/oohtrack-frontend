@@ -73,26 +73,27 @@ export default function AdvertiserCategory() {
 						</button>
 					</div>
 				)}
-				renderItem={({ item, index }) => (
-					<button
-						key={item.id ?? index}
-						type="button"
-						onClick={() => {
-							const isSelected = selectedCategoryIds.some(
-								(id) => Number(id) === Number(item.id)
-							);
-							setFieldValue(
-								"categoryIds",
-								isSelected
-									? selectedCategoryIds.filter((id) => Number(id) !== Number(item.id))
-									: [...selectedCategoryIds, item.id]
-							);
-						}}
-						className="text-left py-5 text-2xl px-8 border-b border-b-[#cacaca] font-medium last:border-b-0 hover:bg-[#f5f5f5]">
-						{selectedCategoryIds.some((id) => Number(id) === Number(item.id)) ? "[Selected] " : ""}
-						{item.name}
-					</button>
-				)}
+				renderItem={({ item, index }) => {
+					const isSelected = selectedCategoryIds.some(
+						(id) => Number(id) === Number(item.id)
+					);
+					return (
+						<button
+							key={item.id ?? index}
+							type="button"
+							onClick={() => {
+								setFieldValue(
+									"categoryIds",
+									isSelected
+										? selectedCategoryIds.filter((id) => Number(id) !== Number(item.id))
+										: [...selectedCategoryIds, item.id]
+								);
+							}}
+							className={`text-left py-5 text-2xl px-8 border-b border-b-[#cacaca] font-medium last:border-b-0 ${isSelected ? "bg-primary text-white" : "hover:bg-[#f5f5f5]"}`}>
+							{isSelected ? "[x] " : ""}{item.name}
+						</button>
+					);
+				}}
 			/>
 			{isError && <p className="mt-2 text-2xl text-primary">Could not load categories.</p>}
 			{!isLoading && !isError && categories.length === 0 && (

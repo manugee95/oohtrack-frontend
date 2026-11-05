@@ -45,13 +45,10 @@ export default function CreateAdvertiserForm({
 		{ setSubmitting }: FormikHelpers<AdvertiserFormValues>
 	) => {
 		try {
-			const payload: Advertiser = {
-				...values,
-				categories: (values.categoryIds ?? []).map(Number),
+			const payload = {
+				name: values.name,
+				categoryIds: values.categoryIds.map(Number),
 			};
-			delete payload.category;
-			delete payload.categoryIds;
-			delete payload.categoryId;
 
 			if (!isEditing) {
 				await ApiInstance.post("/api/advertisers", payload, {
@@ -118,16 +115,17 @@ export default function CreateAdvertiserForm({
 				initialValues={{
 					...initialValues,
 					categoryIds:
-						initialValues.categoryIds ??
-						(initialValues.categories?.length
-							? initialValues.categories
-								.map((category) => typeof category === "object" ? category.id : category)
-								.filter((id): id is number | string => id != null)
-							: initialValues.categoryId != null
-								? [initialValues.categoryId]
-								: initialValues.category?.id != null
-									? [initialValues.category.id]
-									: []),
+						initialValues.categoryIds?.length
+							? initialValues.categoryIds
+							: initialValues.categories?.length
+								? initialValues.categories
+										.map((category) => typeof category === "object" ? category.id : category)
+										.filter((id): id is number | string => id != null)
+									: initialValues.categoryId != null
+									? [initialValues.categoryId]
+									: initialValues.category?.id != null
+										? [initialValues.category.id]
+										: [],
 				}}
 				onSubmit={submitHandler}>
 				{({ isSubmitting, isValidating }) => (

@@ -65,14 +65,17 @@ export default function AdvertisersTable() {
 				}
 			);
 
-			queryClient.setQueryData(["advertisers", currentPage], (prev: any) => {
-				// @ts-ignore
-				const data = { ...prev };
-				// @ts-ignore
-				data.data = data.data.filter((c) => c.id !== advertiserToDelete);
-
-				return data;
-			});
+			queryClient.setQueryData(
+				["advertisers", currentPage, search],
+				(prev: any) => {
+					if (!prev || !Array.isArray(prev.data)) return prev;
+					return {
+						...prev,
+						data: prev.data.filter((advertiser: Advertiser) => advertiser.id !== advertiserToDelete),
+					};
+				}
+			);
+			await queryClient.invalidateQueries({ queryKey: ["advertisers"] });
 
 			showAndHideAlert({ message: "Advertiser Deleted", type: "success" });
 			setIsEditing(false);
@@ -114,23 +117,26 @@ export default function AdvertisersTable() {
 						isEditing
 						initialValues={advertiserToEdit ?? undefined}
 						advertiserId={advertiserToEdit?.id}
-						editCallback={(res) => {
-							queryClient.setQueryData(
-								["advertisers", currentPage],
-								(prev: any) => {
-									// @ts-ignore
-									const data = { ...prev };
-									const index = data.data.findIndex(
-										// @ts-ignore
-										(d) => d.id === res.updatedAdvertiser.id
-									);
-
-									data.data[index] = res.updatedAdvertiser;
-
-									return data;
-								}
-							);
-
+						editCallback={async (res) => {
+							const updatedAdvertiser =
+								res?.updatedAdvertiser ?? res?.advertiser ?? res;
+							if (updatedAdvertiser?.id != null) {
+								queryClient.setQueryData(
+									["advertisers", currentPage, search],
+									(prev: any) => {
+										if (!prev || !Array.isArray(prev.data)) return prev;
+										return {
+											...prev,
+											data: prev.data.map((advertiser: Advertiser) =>
+												advertiser.id === updatedAdvertiser.id
+													? { ...advertiser, ...updatedAdvertiser }
+													: advertiser
+											),
+										};
+									}
+								);
+							}
+							await queryClient.invalidateQueries({ queryKey: ["advertisers"] });
 							setAdvertiserToEdit(null);
 						}}
 					/>
