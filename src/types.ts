@@ -47,7 +47,7 @@ export interface Client extends User {
 }
 
 export interface Industry {
-	id: number;
+	id?: number;
 	name: string;
 }
 
