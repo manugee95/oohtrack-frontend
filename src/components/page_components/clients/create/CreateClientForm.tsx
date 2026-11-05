@@ -12,8 +12,11 @@ import useAlert from "@/hooks/useAlert";
 import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import * as Yup from "yup";
-import { useRootStore } from "@/components/shared/providers/RootProvider";
 import ClientAdvertiserName from "./ClientAdvertiserName";
+import { useQuery } from "@tanstack/react-query";
+import useCredentials from "@/hooks/useCredentials";
+import { ApiInstance } from "@/utils";
+import { Industry } from "@/types";
 
 const schema = Yup.object().shape({
 	name: Yup.number().required().label("Name"),
@@ -50,7 +53,21 @@ export default function CreateClientForm({
 	const { createUser, updateUser } = useUserManagement();
 	const { showAndHideAlert } = useAlert();
 	const router = useRouter();
-	const { industries } = useRootStore();
+	const { accessToken } = useCredentials();
+	const { data: industriesResponse, isLoading: industriesLoading } = useQuery({
+		queryKey: ["industries"],
+		queryFn: async () => {
+			const response = await ApiInstance.get("/api/industries", {
+				headers: { "auth-token": accessToken },
+			});
+			return response.data;
+		},
+	});
+	const industries: Industry[] = Array.isArray(industriesResponse)
+		? industriesResponse
+		: Array.isArray(industriesResponse?.data)
+			? industriesResponse.data
+			: [];
 
 	const submitHandler = async (
 		values: Client,
@@ -169,7 +186,7 @@ export default function CreateClientForm({
 											className="w-full h-[50px] rounded-xl bg-[#F5F5F5] px-8 flex items-center justify-between">
 											{values.industryId === "" && (
 												<span className="text-2xl text-[#8D8D8D]">
-													Select Industry
+													{industriesLoading ? "Loading industries..." : "Select Industry"}
 												</span>
 											)}
 											{values.industryId !== "" && (

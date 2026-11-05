@@ -4,7 +4,7 @@ import { createStore, StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
 import { Industry } from "@/types";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AccountManager } from "@/types";
+import { DashboardUser } from "@/types";
 
 export interface Alert {
 	show?: boolean;
@@ -17,8 +17,8 @@ interface RootStore {
 	setAlert(alert: Alert): void;
 	industries: Industry[];
 	setIndustries: (val: Industry[]) => void;
-	userDetails: AccountManager | null;
-	setUserDetails: (val: AccountManager | null) => void;
+	userDetails: DashboardUser | null;
+	setUserDetails: (val: DashboardUser | null) => void;
 }
 
 const RootContext = createContext<StoreApi<RootStore> | null>(null);
@@ -26,7 +26,7 @@ const queryClient = new QueryClient();
 
 const createRootStore = (
 	industries?: Industry[],
-	userDetails?: AccountManager
+	userDetails?: DashboardUser
 ) =>
 	createStore<RootStore>()((set) => ({
 		alert: {
@@ -55,7 +55,7 @@ const RootProvider = ({
 	userDetails,
 }: PropsWithChildren & {
 	industries?: Industry[];
-	userDetails?: AccountManager;
+	userDetails?: DashboardUser;
 }) => {
 	const rootStoreRef = useRef<StoreApi<RootStore> | null>(null);
 	rootStoreRef.current = createRootStore(industries, userDetails);

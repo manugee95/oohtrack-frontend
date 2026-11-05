@@ -18,6 +18,10 @@ export default function DashboardHeader() {
 	const [isUploading, setIsUploading] = useState(false);
 	const { showAndHideAlert } = useAlert();
 	const [file, setFile] = useState<File | null>();
+	const greetingName =
+		userDetails?.role === "CLIENT_AGENCY_USER"
+			? userDetails.advertiser?.name ?? userDetails.firstname
+			: userDetails?.firstname;
 
 	async function profileUploadHandler() {
 		try {
@@ -62,7 +66,7 @@ export default function DashboardHeader() {
 		<section className="w-full h-[10rem] flex items-center justify-between">
 			<div className="flex flex-col">
 				<h4 className="text-[2.5rem] md:text-[3rem] font-black">
-					Hello, {userDetails?.firstname}
+					Hello, {greetingName}
 				</h4>
 				{userDetails?.role && (
 					<span className="text-[1.5rem] font-medium text-[#666666]">

@@ -23,6 +23,11 @@ export type Role =
 	| "CLIENT_AGENCY_USER"
 	| "FIELD_AUDITOR";
 
+export interface DashboardUser extends User {
+	role: Role;
+	advertiser?: Advertiser;
+}
+
 export interface AccountManager extends User {
 	role: "CHIEF_ACCOUNT_MANAGER" | "ACCOUNT_MANAGER" | "SUPER_ADMIN";
 }

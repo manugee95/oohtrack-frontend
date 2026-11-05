@@ -48,27 +48,23 @@ export default function CreateBrandForm({
 		{ setSubmitting }: FormikHelpers<Brand>
 	) => {
 		try {
-			const formData = new FormData();
-
-			Object.keys(values).forEach((key) => {
-				// @ts-ignore
-				if (Array.isArray(values[key])) {
-					// @ts-ignore
-					values[key].forEach((val) => {
-						formData.append(key, val);
-					});
-				} else {
-					// @ts-ignore
-					formData.append(key, values[key]);
-				}
-			});
-
+			const payload = {
+				name: values.name,
+				advertiserId: Number(values.advertiserId),
+				categoryId: Number(values.categoryId),
+			};
+			let requestData: typeof payload | FormData = payload;
 			if (file) {
-				formData.append("logo", new Blob([file], { type: file.type }));
+				const formData = new FormData();
+				Object.entries(payload).forEach(([key, value]) =>
+					formData.append(key, String(value))
+				);
+				formData.append("logo", file);
+				requestData = formData;
 			}
 
 			if (!isEditing) {
-				await ApiInstance.post("/api/brands", formData, {
+				await ApiInstance.post("/api/brands", requestData, {
 					headers: {
 						"auth-token": accessToken,
 					},
@@ -83,7 +79,7 @@ export default function CreateBrandForm({
 
 				router.push("/brands");
 			} else {
-				const res = await ApiInstance.put("/api/brand/" + brandId, formData, {
+				const res = await ApiInstance.put("/api/brand/" + brandId, requestData, {
 					headers: {
 						"auth-token": accessToken,
 					},

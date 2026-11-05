@@ -34,6 +34,7 @@ export const SidePanelContent = function ({ cb }: { cb?: () => void }) {
 	const isReports = pathname.startsWith("/reports");
 	const isRegions = pathname.startsWith("/regions-states");
 	const isCategories = pathname.startsWith("/categories");
+	const isIndustries = pathname.startsWith("/industries");
 	const isBrands = pathname.startsWith("/brands");
 
 	const role = userDetails?.role;
@@ -219,6 +220,19 @@ export const SidePanelContent = function ({ cb }: { cb?: () => void }) {
 							<CategoryIcon />
 							<span className="text-white text-2xl xl:text-3xl font-medium">
 								Categories
+							</span>
+						</Link>
+						<Link
+							onClick={() => {
+								if (cb) cb();
+							}}
+							href="/industries"
+							className={`flex items-center gap-5 h-[40px] rounded-lg px-5 ${
+								isIndustries ? "bg-[#2A2625D4]" : "bg-transparent"
+							}`}>
+							<CategoryIcon />
+							<span className="text-white text-2xl xl:text-3xl font-medium">
+								Industries
 							</span>
 						</Link>
 						<Link

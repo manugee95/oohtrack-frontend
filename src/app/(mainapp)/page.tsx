@@ -10,7 +10,7 @@ import { ApiInstance } from "@/utils";
 import { cookies } from "next/headers";
 import { ACCESS_TOKEN_COOKIE_NAME } from "@/constants";
 import { redirect } from "next/navigation";
-import { AccountManager } from "@/types";
+import { DashboardUser } from "@/types";
 
 export default async function page() {
 	const cookieStore = await cookies();
@@ -24,7 +24,7 @@ export default async function page() {
 	};
 	let analyticsAvailable = true;
 
-	let userDetails: AccountManager | null = null;
+	let userDetails: DashboardUser | null = null;
 
 	if (cookieStore.has(ACCESS_TOKEN_COOKIE_NAME)) {
 		try {
@@ -64,6 +64,7 @@ export default async function page() {
 	}
 
 	const role = userDetails.role;
+	const isClient = role === "CLIENT_AGENCY_USER";
 
 	const hasAccess = ["CHIEF_ACCOUNT_MANAGER", "SUPER_ADMIN"].includes(role);
 
@@ -76,6 +77,7 @@ export default async function page() {
 				</p>
 			)}
 			<section className="grid md:grid-cols-3 gap-10 mt-10">
+				{!isClient && <>
 				<Link
 					href={hasAccess ? "/clients" : ""}
 					style={{ cursor: hasAccess ? "pointer" : "not-allowed" }}
@@ -132,6 +134,7 @@ export default async function page() {
 						{analyticsAvailable ? analytics.totalFieldAuditors : "N/A"}
 					</span>
 				</Link>
+				</>}
 				<Link href={""} className="w-full h-[128px] rounded-2xl bg-white p-8">
 					<div className="flex items-center justify-between">
 						<span className="text-[1.8rem] font-semibold text-appBlack">
@@ -157,14 +160,14 @@ export default async function page() {
 					</span>
 				</Link>
 			</section>
-			<section className="rounded-2xl bg-white my-12">
+			{!isClient && <section className="rounded-2xl bg-white my-12">
 				<div className="w-full p-10 flex items-center justify-between">
 					<h5 className="text-[1.7rem] md:text-[2.5rem] font-extrabold text-appBlack">
 						Pending Site Uploads
 					</h5>
 				</div>
 				<PendingSiteUploads />
-			</section>
+			</section>}
 		</>
 	);
 }

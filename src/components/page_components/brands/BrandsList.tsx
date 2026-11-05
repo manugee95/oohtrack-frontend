@@ -63,16 +63,18 @@ export default function BrandsList() {
 			});
 
 			queryClient.setQueryData(
-				["brandsAndAdvertisers", currentPage],
+				["brandsAndAdvertisers", currentPage, search],
 				(prev) => {
-					// @ts-ignore
-					const data = { ...prev };
-					// @ts-ignore
-					data.data = data.data.filter((c) => c.id !== brandTodelete);
-
-					return data;
+					if (!prev || !Array.isArray((prev as any).data)) return prev;
+					return {
+						...(prev as any),
+						data: (prev as any).data.filter(
+							(brand: Brand) => brand.id !== brandTodelete
+						),
+					};
 				}
 			);
+			await queryClient.invalidateQueries({ queryKey: ["brandsAndAdvertisers"] });
 
 			showAndHideAlert({ message: "Brand Deleted", type: "success" });
 			setIsDeleting(false);
@@ -144,27 +146,25 @@ export default function BrandsList() {
 						isEditing
 						initialValues={brandToEdit ?? undefined}
 						brandId={brandToEdit?.id!}
-						editCallback={(res) => {
-							queryClient.setQueryData(
-								["brandsAndAdvertisers", currentPage],
-								(prev) => {
-									// @ts-ignore
-									const data = { ...prev };
-									const index = data.data.findIndex(
-										// @ts-ignore
-										(d) => d.id === res.updatedBrand.id
-									);
-
-									data.data[index] = { ...res.updatedBrand };
-
-									return data;
-								}
-							);
-
-							queryClient.refetchQueries({
-								queryKey: ["brandsAndAdvertisers", currentPage],
-							});
-
+						editCallback={async (res) => {
+							const updatedBrand = res?.updatedBrand ?? res?.brand ?? res;
+							if (updatedBrand?.id != null) {
+								queryClient.setQueryData(
+									["brandsAndAdvertisers", currentPage, search],
+									(prev) => {
+										if (!prev || !Array.isArray((prev as any).data)) return prev;
+										return {
+											...(prev as any),
+											data: (prev as any).data.map((brand: Brand) =>
+												brand.id === updatedBrand.id
+													? { ...brand, ...updatedBrand }
+													: brand
+											),
+										};
+									}
+								);
+							}
+							await queryClient.invalidateQueries({ queryKey: ["brandsAndAdvertisers"] });
 							setBrandToEdit(null);
 						}}
 					/>
