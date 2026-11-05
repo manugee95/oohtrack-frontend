@@ -69,8 +69,12 @@ export interface Advertiser {
 	categoryId?: number | string;
 	categoryIds?: Array<number | string>;
 	category?: Category;
-	categories?: Category[];
+	categories?: Array<number | string | Category>;
 }
+
+export type AdvertiserFormValues = Omit<Advertiser, "categoryIds"> & {
+	categoryIds: Array<number | string>;
+};
 
 export interface Category {
 	id?: number;

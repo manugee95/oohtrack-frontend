@@ -7,11 +7,11 @@ import Dropdown from "@/components/shared/Dropdown";
 import ChevronIcon from "@/components/shared/icons/ChevronIcon";
 import useCredentials from "@/hooks/useCredentials";
 import { ApiInstance } from "@/utils";
-import { Advertiser, Category } from "@/types";
+import { AdvertiserFormValues, Category } from "@/types";
 
 export default function AdvertiserCategory() {
 	const { accessToken } = useCredentials();
-	const { values, setFieldValue } = useFormikContext<Advertiser>();
+	const { values, setFieldValue } = useFormikContext<AdvertiserFormValues>();
 	const { data, isLoading, isError } = useQuery({
 		queryKey: ["categories", "advertiser-form"],
 		queryFn: async () => {
@@ -46,7 +46,10 @@ export default function AdvertiserCategory() {
 	const selectedCategories = selectedCategoryIds
 		.map((id) =>
 			categories.find((category) => Number(category.id) === Number(id)) ??
-			values.categories?.find((category) => Number(category.id) === Number(id))
+			values.categories?.find(
+				(category): category is Category =>
+					typeof category === "object" && Number(category.id) === Number(id)
+			)
 		)
 		.filter((category): category is Category => Boolean(category));
 
@@ -86,7 +89,7 @@ export default function AdvertiserCategory() {
 							);
 						}}
 						className="text-left py-5 text-2xl px-8 border-b border-b-[#cacaca] font-medium last:border-b-0 hover:bg-[#f5f5f5]">
-						{selectedCategoryIds.some((id) => Number(id) === Number(item.id)) ? "✓ " : ""}
+						{selectedCategoryIds.some((id) => Number(id) === Number(item.id)) ? "[Selected] " : ""}
 						{item.name}
 					</button>
 				)}

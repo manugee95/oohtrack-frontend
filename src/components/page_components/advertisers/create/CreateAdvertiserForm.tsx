@@ -3,7 +3,7 @@ import React from "react";
 import { Form, Formik, FormikHelpers } from "formik";
 import AppButton from "@/components/shared/AppButton";
 import AppInput from "@/components/shared/AppInput";
-import { Advertiser } from "@/types";
+import { Advertiser, AdvertiserFormValues } from "@/types";
 import useAlert from "@/hooks/useAlert";
 import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
@@ -41,16 +41,16 @@ export default function CreateAdvertiserForm({
 	const { accessToken } = useCredentials();
 
 	const submitHandler = async (
-		values: Advertiser,
-		{ setSubmitting }: FormikHelpers<Advertiser>
+		values: AdvertiserFormValues,
+		{ setSubmitting }: FormikHelpers<AdvertiserFormValues>
 	) => {
 		try {
 			const payload: Advertiser = {
 				...values,
-				categoryIds: (values.categoryIds ?? []).map(Number),
+				categories: (values.categoryIds ?? []).map(Number),
 			};
 			delete payload.category;
-			delete payload.categories;
+			delete payload.categoryIds;
 			delete payload.categoryId;
 
 			if (!isEditing) {
@@ -113,14 +113,16 @@ export default function CreateAdvertiserForm({
 				</h1>
 			</div>
 
-			<Formik
+			<Formik<AdvertiserFormValues>
 				validationSchema={schema}
 				initialValues={{
 					...initialValues,
 					categoryIds:
 						initialValues.categoryIds ??
 						(initialValues.categories?.length
-							? initialValues.categories.map((category) => category.id!).filter(Boolean)
+							? initialValues.categories
+								.map((category) => typeof category === "object" ? category.id : category)
+								.filter((id): id is number | string => id != null)
 							: initialValues.categoryId != null
 								? [initialValues.categoryId]
 								: initialValues.category?.id != null
