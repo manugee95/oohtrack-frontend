@@ -159,7 +159,6 @@ export default function FieldAuditorsTable() {
 												items={[
 													<EditFieldAuditor
 														fieldAuditor={d}
-														currentPage={currentPage}
 													/>,
 													<DeactivateFieldAuditor user={d} userId={d.id} />,
 													<ResetFieldAuditorPassword />,

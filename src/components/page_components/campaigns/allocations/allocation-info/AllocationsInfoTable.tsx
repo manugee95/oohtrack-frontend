@@ -19,11 +19,11 @@ export default function AllocationsInfoTable() {
 	const params = useParams();
 	const { campaignId } = params;
 
-	const { data, isLoading, isFetching } = useQuery({
-		queryKey: ["campaigns", currentPage],
+	const { data, isLoading, isFetching, isError, error } = useQuery({
+		queryKey: ["campaign-auditor-tasks", campaignId, currentPage],
 		queryFn: async () => {
 			const response = await ApiInstance.get(
-				`/campaign/${campaignId}/auditor-tasks`,
+				`/campaign/${campaignId}/auditor-tasks?page=${currentPage}&limit=10`,
 				{
 					headers: {
 						"auth-token": accessToken,
@@ -39,9 +39,9 @@ export default function AllocationsInfoTable() {
 	});
 
 	return (
-		<div className="h-full flex flex-col">
+		<div className="min-h-[70vh] flex flex-col">
 			<AllocationsInfoActions />
-			<div className="grow w-full overflow-auto xl:overflow-visible">
+			<div className="w-full overflow-x-auto">
 				<table className="w-[100%] md:w-[100%] xl:w-full" cellPadding={15}>
 					<thead className="border-b border-t border-[#C7C7C7] border-t-[#C7C7C7] bg-[#f5f5f5]">
 						<tr>
@@ -63,14 +63,16 @@ export default function AllocationsInfoTable() {
 						</tr>
 					</thead>
 					<tbody>
-						{isLoading || isFetching
+						{isError ? (
+							<tr><td colSpan={4} className="py-8 text-center text-2xl text-red-600">{(error as any)?.response?.data?.error ?? (error as any)?.response?.data?.message ?? "Could not load allocation details."}</td></tr>
+						) : isLoading || isFetching
 							? Array(5)
 									.fill("")
 									.map((d, index) => <CampaignPlaceholder key={index} />)
 							: data?.data?.length
 							? data.data.map((d: any, i: number) => (
 									<tr
-										key={i}
+										key={d.fieldAuditorId ?? d.id ?? i}
 										className="border-b-[#E6E6E6] border-b 
                         ">
 										<td className="text-center">
@@ -78,7 +80,7 @@ export default function AllocationsInfoTable() {
 										</td>
 										<td className="text-center hidden xl:table-cell">
 											<span className="text-2xl font-medium">
-												{d.fieldAuditor}
+												{d.fieldAuditor?.name ?? d.fieldAuditor ?? "-"}
 											</span>
 										</td>
 										<td className="text-center">

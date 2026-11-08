@@ -30,6 +30,9 @@ export interface DashboardUser extends User {
 
 export interface AccountManager extends User {
 	role: "CHIEF_ACCOUNT_MANAGER" | "ACCOUNT_MANAGER" | "SUPER_ADMIN";
+	clientIds?: number[];
+	clients?: Array<number | string | Client>;
+	assignedClients?: Array<number | string | Client>;
 }
 
 export interface FieldAuditor extends User {
@@ -44,6 +47,7 @@ export interface Client extends User {
 	industry?: Industry;
 	additionalEmail: string[];
 	advertiser?: Advertiser;
+	clientManagerAssignment?: unknown;
 }
 
 export interface Industry {
@@ -123,20 +127,24 @@ export interface CampaignAllocation {
 }
 
 export interface Site {
+	id?: number;
 	city: string;
+	cityId?: number;
 	code: string;
 	brand: string;
 	state: string;
 	format: string;
 	location: string;
 	mediaOwner: string;
+	fieldAuditorId?: number | null;
+	status?: "unassigned" | string;
 }
 
 export interface SiteAssignment {
 	id: number;
 	siteCode: string;
-	fieldAuditorId: number;
-	status: "pending" | "approved" | "disapproved";
+	fieldAuditorId: number | null;
+	status: "pending" | "approved" | "disapproved" | "unassigned";
 }
 
 export interface SiteAssignmentReport {

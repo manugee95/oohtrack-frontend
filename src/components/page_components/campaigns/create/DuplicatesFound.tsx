@@ -113,7 +113,7 @@ export default function DuplicatesFound({
 					</div>
 				)}
 				{duplicates.length > 0 && (
-					<table className="w-[300%] md:w-[125%] xl:w-full" cellPadding={15}>
+					<table className="w-[350%] md:w-[175%] xl:w-full" cellPadding={15}>
 						<thead className="border-b border-t border-[#C7C7C7] border-t-[#C7C7C7] bg-[#f5f5f5]">
 							<tr>
 								<th>
@@ -128,29 +128,20 @@ export default function DuplicatesFound({
 									</div>
 								</th>
 								<th>
-									<span className="text-2xl font-semibold">SN</span>
-								</th>
-								<th className="text-center">
-									<span className="text-2xl font-semibold">Code</span>
-								</th>
-								<th>
-									<span className="text-2xl font-semibold">Brand</span>
+									<span className="text-2xl font-semibold">S/N</span>
 								</th>
 								<th>
 									<span className="text-2xl font-semibold">City</span>
 								</th>
+								<th className="text-left"><span className="text-2xl font-semibold">Location</span></th>
+								<th><span className="text-2xl font-semibold">Media Owner</span></th>
+								<th><span className="text-2xl font-semibold">Brand</span></th>
 								<th>
-									<span className="text-2xl font-semibold">State</span>
+									<span className="text-2xl font-semibold">Category</span>
 								</th>
-								<th className="w-[215px] text-left">
-									<span className="text-2xl font-semibold w-full">Address</span>
-								</th>
-								<th>
-									<span className="text-2xl font-semibold">Contractor</span>
-								</th>
-								<th>
-									<span className="text-2xl font-semibold">Media Type</span>
-								</th>
+								<th><span className="text-2xl font-semibold">Board Type</span></th>
+								<th><span className="text-2xl font-semibold">Batch</span></th>
+								<th><span className="text-2xl font-semibold">Company</span></th>
 								<th className="text-center"></th>
 							</tr>
 						</thead>
@@ -178,33 +169,22 @@ export default function DuplicatesFound({
 										</div>
 									</td>
 									<td className="text-center">
-										<span className="text-2xl font-medium">{i + 1}</span>
+										<span className="text-2xl font-medium">{String(d["S/N"] ?? i + 1)}</span>
 									</td>
 									<td className="text-center">
-										<span className="text-2xl font-medium">N/A</span>
+										<span className="text-2xl font-medium">{String(d.city ?? "")}</span>
+									</td>
+									<td className="text-left"><span className="text-2xl font-medium">{String(d.location ?? "")}</span></td>
+									<td><span className="text-2xl font-medium">{String(d["media owner"] ?? "")}</span></td>
+									<td><span className="text-2xl font-medium">{String(d.brand ?? "")}</span></td>
+									<td className="text-center">
+										<span className="text-2xl font-medium">{String(d.category ?? "")}</span>
 									</td>
 									<td className="text-center">
-										<span className="text-2xl font-medium">{d.BRAND}</span>
+										<span className="text-2xl font-medium">{String(d["board Type"] ?? "")}</span>
 									</td>
-									<td className="text-center">
-										<span className="text-2xl font-medium text-center">
-											{d.TOWN}
-										</span>
-									</td>
-									<td className="text-center">
-										<span className="text-2xl font-medium">{d.STATE}</span>
-									</td>
-									<td className="text-left">
-										<span className="text-2xl font-medium">{d.LOCATION}</span>
-									</td>
-									<td className="text-center">
-										<span className="text-2xl font-medium">
-											{d["MEDIA OWNER"]}
-										</span>
-									</td>
-									<td className="text-center">
-										<span className="text-2xl font-medium">{d.FORMAT}</span>
-									</td>
+									<td><span className="text-2xl font-medium">{String(d.batch ?? "")}</span></td>
+									<td><span className="text-2xl font-medium">{String(d.company ?? "")}</span></td>
 									<td className="text-center">
 										<button
 											onClick={() => removeDuplicate(d.index)}

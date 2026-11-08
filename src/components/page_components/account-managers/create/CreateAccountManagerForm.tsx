@@ -11,6 +11,10 @@ import useAlert from "@/hooks/useAlert";
 import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import * as Yup from "yup";
+import { useQuery } from "@tanstack/react-query";
+import ClientAssignmentsPicker from "./ClientAssignmentsPicker";
+
+type AccountManagerValues = AccountManager & { clientIds: number[] };
 
 const schema = Yup.object().shape({
 	firstname: Yup.string().required().label("First Name"),
@@ -22,7 +26,17 @@ const schema = Yup.object().shape({
 	phone: Yup.string().required().label("Phone Number"),
 	address: Yup.string().required().label("Address"),
 	role: Yup.string().required().label("Role"),
+	clientIds: Yup.array().when("role", {
+		is: "ACCOUNT_MANAGER",
+		then: (field) => field.min(1, "Select at least one client").required(),
+		otherwise: (field) => field.optional(),
+	}),
 });
+const editSchema = schema.omit(["clientIds"]);
+
+function isAccountManagerRole(role?: string) {
+	return role?.toUpperCase().replace(/[\s-]+/g, "_") === "ACCOUNT_MANAGER";
+}
 
 interface AccountManagerFormProps {
 	isEditing?: boolean;
@@ -38,21 +52,78 @@ export default function CreateAccountManagerForm({
 		email: "",
 		phone: "",
 		address: "",
-		role: "CHIEF_ACCOUNT_MANAGER",
+		role: "ACCOUNT_MANAGER",
 	},
 	editCallback,
 }: AccountManagerFormProps) {
 	const { createUser, updateUser } = useUserManagement();
+	const { getClients, getAccountManagers } = useUserManagement();
+	const assignedClientIds = Array.from(new Set([
+		...(initialValues.clientIds ?? []),
+		...((initialValues.clients ?? []).map((client) =>
+			typeof client === "object" ? client.id : client
+		)),
+		...((initialValues.assignedClients ?? []).map((client) =>
+			typeof client === "object" ? client.id : client
+		)),
+	].map(Number).filter(Number.isFinite)));
+	const { data: clients = [], isLoading: clientsLoading, isError: clientsError } = useQuery({
+		queryKey: ["clients-for-account-manager-assignment"],
+		queryFn: async () => {
+			const firstPage = await getClients(1, "");
+			const firstPageClients = Array.isArray(firstPage) ? firstPage : firstPage?.data ?? firstPage?.clients ?? [];
+			const clients = [...firstPageClients];
+			for (let page = 2; page <= (firstPage?.totalPages ?? 1); page++) {
+				const response = await getClients(page, "");
+				const pageClients = Array.isArray(response) ? response : response?.data ?? response?.clients ?? [];
+				clients.push(...pageClients);
+			}
+			return clients;
+		},
+		retry: false,
+	});
+	const { data: managerAssignments, isLoading: managerAssignmentsLoading } = useQuery({
+		queryKey: ["account-manager-managed-clients", initialValues.id],
+		enabled: isEditing && initialValues.id != null,
+		queryFn: async () => {
+			const firstPage = await getAccountManagers(1, "");
+			const firstManagers = Array.isArray(firstPage)
+				? firstPage
+				: firstPage?.data ?? firstPage?.accountManagers ?? firstPage?.managers ?? [];
+			const managers = [...firstManagers];
+			for (let page = 2; page <= (firstPage?.totalPages ?? 1); page++) {
+				const response = await getAccountManagers(page, "");
+				const pageManagers = Array.isArray(response)
+					? response
+					: response?.data ?? response?.accountManagers ?? response?.managers ?? [];
+				managers.push(...pageManagers);
+			}
+			const manager = managers.find((item: any) => Number(item.id) === Number(initialValues.id));
+			return {
+				found: Boolean(manager),
+				clientIds: Array.isArray(manager?.managedClients)
+					? manager.managedClients
+							.map((assignment: any) => Number(assignment.clientId))
+							.filter(Number.isFinite)
+					: [],
+			};
+		},
+		retry: false,
+	});
 	const { showAndHideAlert } = useAlert();
 	const router = useRouter();
 
 	const submitHandler = async (
-		values: AccountManager,
-		{ setSubmitting }: FormikHelpers<AccountManager>
+		values: AccountManagerValues,
+		{ setSubmitting }: FormikHelpers<AccountManagerValues>
 	) => {
 		try {
 			if (!isEditing) {
-				const response = await createUser(values);
+				const { clientIds, ...userDetails } = values;
+				const response = await createUser({
+					...userDetails,
+					...(isAccountManagerRole(values.role) ? { clientIds } : {}),
+				});
 				console.log(response);
 
 				showAndHideAlert({
@@ -62,11 +133,15 @@ export default function CreateAccountManagerForm({
 			}
 
 			if (isEditing) {
-				//@ts-ignore
-				delete values.statesCovered;
-				delete values.name;
+				const { clientIds, ...accountManagerValues } = values;
+				const updateValues: any = {
+					...accountManagerValues,
+					...(isAccountManagerRole(values.role) ? { clientIds } : {}),
+				};
+				delete updateValues.statesCovered;
+				delete updateValues.name;
 
-				const response = await updateUser(initialValues.id!, values);
+				const response = await updateUser(initialValues.id!, updateValues);
 				console.log(response);
 
 				showAndHideAlert({
@@ -75,7 +150,11 @@ export default function CreateAccountManagerForm({
 				});
 
 				// @ts-ignore
-				editCallback(response);
+				editCallback({
+					...initialValues,
+					...updateValues,
+					...(response?.data ?? response),
+				});
 			}
 
 			setSubmitting(false);
@@ -106,8 +185,11 @@ export default function CreateAccountManagerForm({
 			</div>
 
 			<Formik
-				validationSchema={schema}
-				initialValues={initialValues}
+				validationSchema={isEditing ? editSchema : schema}
+				initialValues={{
+					...initialValues,
+					clientIds: isEditing ? assignedClientIds : [],
+				} as AccountManagerValues}
 				onSubmit={submitHandler}>
 				{({ values, setFieldValue, isValidating, isSubmitting }) => (
 					<Form className="w-full flex flex-col gap-y-10 mt-8 px-12 pb-12">
@@ -147,6 +229,19 @@ export default function CreateAccountManagerForm({
 								</button>
 							)}
 						/>
+						{((isEditing && isAccountManagerRole(initialValues.role)) || isAccountManagerRole(values.role)) && (
+							<ClientAssignmentsPicker
+								clients={clients}
+								managerId={initialValues.id}
+								clientIds={values.clientIds}
+								setClientIds={(clientIds) => setFieldValue("clientIds", clientIds)}
+								isEditing={isEditing}
+								isLoading={clientsLoading}
+								loadError={clientsError}
+								selectionReady={!isEditing || !managerAssignmentsLoading}
+								selectionIds={managerAssignments?.found ? managerAssignments.clientIds : assignedClientIds}
+							/>
+						)}
 						<div className="grid md:grid-cols-2 gap-10">
 							<div className="w-full">
 								<AppInput

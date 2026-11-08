@@ -4,8 +4,6 @@ import { Form, Formik, FormikHelpers } from "formik";
 import FileUploadIcon from "@/components/shared/icons/FileUploadIcon";
 import AppButton from "@/components/shared/AppButton";
 import DuplicatesFound from "./DuplicatesFound";
-import CampaignClient from "./CampaignClient";
-import CampaignAccountManager from "./CampaignAccountManager";
 import useAlert from "@/hooks/useAlert";
 import { AxiosError } from "axios";
 import * as Yup from "yup";
@@ -21,29 +19,26 @@ type CampaignFormProps = {
 };
 
 interface CampaignCreationData {
-	clientId: string;
-	accountManagerId: string;
+	clientId?: string;
+	accountManagerId?: string;
 }
 
-export interface SiteListData {
-	BRAND: string;
-	FORMAT: string;
-	LOCATION: string;
-	"MEDIA OWNER": string;
-	STATE: string;
-	TOWN: string;
+export interface SiteListData extends Record<string, unknown> {
 	index: number;
 }
 
-const schema = Yup.object().shape({
-	clientId: Yup.string().required(),
-	accountManagerId: Yup.string().required(),
-});
+function normalizeSerialNumber(row: Record<string, unknown> | null | undefined) {
+	if (!row || typeof row !== "object") return "";
+	const serialEntry = Object.entries(row).find(([key]) =>
+		["sn", "serialnumber", "serialno", "sno", "sitenumber", "code", "sitecode"].includes(
+			key.toLowerCase().replace(/[^a-z0-9]/g, "")
+		)
+	);
+	const value = serialEntry?.[1];
+	return value == null ? "" : String(value).trim().toLowerCase();
+}
 
-const addMoreSchema = Yup.object().shape({
-	clientId: Yup.string().optional(),
-	accountManagerId: Yup.string().optional(),
-});
+const schema = Yup.object().shape({});
 
 export default function CreateCampaignForm({ forAddMore }: CampaignFormProps) {
 	const [duplicatesFound, setDuplicatesFound] = useState(false);
@@ -60,8 +55,9 @@ export default function CreateCampaignForm({ forAddMore }: CampaignFormProps) {
 	const { accessToken } = useCredentials();
 	const router = useRouter();
 	const params = useParams();
-	const { campaignId } = params;
-
+	const routeCampaignId = Array.isArray(params.campaignId)
+		? params.campaignId[0]
+		: params.campaignId;
 	const initialValues: CampaignCreationData = {
 		clientId: "",
 		accountManagerId: "",
@@ -78,7 +74,7 @@ export default function CreateCampaignForm({ forAddMore }: CampaignFormProps) {
 
 			await checkDuplicates(siteList, values);
 
-			await uploadCampaign(siteList, values);
+			await uploadCampaign(siteList);
 
 			showAndHideAlert({
 				message: "Campaign created successfully",
@@ -105,20 +101,21 @@ export default function CreateCampaignForm({ forAddMore }: CampaignFormProps) {
 		{ setSubmitting }: FormikHelpers<CampaignCreationData>
 	) => {
 		try {
-			if (!campaignId) {
-				throw new AxiosError("Campaign Id is missing!");
-			}
-
 			if (!siteList) {
 				throw new AxiosError("Please upload campaign sitelist. ");
 			}
 
-			await checkDuplicates(siteList, values);
+			const fileToUpload = routeCampaignId
+				? await extractNewCampaignSites(siteList, String(routeCampaignId))
+				: siteList;
+			await checkDuplicates(fileToUpload, values);
 
-			await uploadCampaign(siteList, values);
+			await uploadCampaign(fileToUpload);
 
 			showAndHideAlert({
-				message: "Site list added successfully",
+				message: routeCampaignId
+					? "Site list added successfully"
+					: "Campaign created successfully",
 				type: "success",
 			});
 			setSubmitting(false);
@@ -136,6 +133,49 @@ export default function CreateCampaignForm({ forAddMore }: CampaignFormProps) {
 			setSubmitting(false);
 		}
 	};
+
+	async function extractNewCampaignSites(file: File, targetCampaignId: string): Promise<File> {
+		const campaignResponse = await ApiInstance.get(`/campaigns/${targetCampaignId}`, {
+			headers: { "auth-token": accessToken },
+		});
+		const campaignPayload = campaignResponse.data;
+		const campaign = campaignPayload?.campaign ?? campaignPayload?.data?.campaign ?? campaignPayload?.data ?? campaignPayload;
+		const existingSites = Array.isArray(campaign?.siteList)
+			? campaign.siteList
+			: Array.isArray(campaign?.sites)
+				? campaign.sites
+				: [];
+		const existingSerialNumbers = new Set(
+			existingSites
+				.map((site: Record<string, unknown>) => normalizeSerialNumber(site))
+				.filter(Boolean)
+		);
+
+		const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
+		const sheetName = workbook.SheetNames[0];
+		if (!sheetName) throw new AxiosError("The uploaded file does not contain a site list.");
+		const worksheet = workbook.Sheets[sheetName];
+		const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: "" });
+		if (rows.length === 0) throw new AxiosError("The uploaded file does not contain any site rows.");
+		const newRows = rows.filter((row) => {
+			const serialNumber = normalizeSerialNumber(row);
+			return !serialNumber || !existingSerialNumbers.has(serialNumber);
+		});
+
+		if (newRows.length === 0) {
+			throw new AxiosError("This list has no new sites to add to the selected campaign.");
+		}
+
+		const newWorkbook = XLSX.utils.book_new();
+		const newWorksheet = XLSX.utils.json_to_sheet(newRows, {
+			header: Object.keys(rows[0] ?? {}),
+		});
+		XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, sheetName);
+		const fileData = XLSX.write(newWorkbook, { bookType: "xlsx", type: "array" });
+		return new File([fileData], file.name.replace(/\.(xlsx|xls|csv)$/i, "_new.xlsx"), {
+			type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+		});
+	}
 
 	const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
 		if (e.target.files) {
@@ -188,16 +228,12 @@ export default function CreateCampaignForm({ forAddMore }: CampaignFormProps) {
 	}
 
 	async function uploadCampaign(
-		file: File | Blob,
-		values: CampaignCreationData
+		file: File | Blob
 	) {
 		const formData = new FormData();
 
-		if (forAddMore) {
-			formData.append("campaignId", campaignId as string);
-		} else {
-			formData.append("clientId", values.clientId);
-			formData.append("accountManagerId", values.accountManagerId);
+		if (forAddMore && routeCampaignId) {
+			formData.append("campaignId", String(routeCampaignId));
 		}
 
 		formData.append(
@@ -206,7 +242,7 @@ export default function CreateCampaignForm({ forAddMore }: CampaignFormProps) {
 			file instanceof File ? file.name : siteList?.name
 		);
 
-		if (forAddMore) {
+		if (forAddMore && routeCampaignId) {
 			await ApiInstance.post("sites/upload", formData, {
 				headers: {
 					"auth-token": accessToken,
@@ -237,7 +273,9 @@ export default function CreateCampaignForm({ forAddMore }: CampaignFormProps) {
 
 	function convertToFile() {
 		// Convert updated data back to a file
-		const worksheet = XLSX.utils.json_to_sheet(jsonSiteList);
+		const worksheet = XLSX.utils.json_to_sheet(
+			jsonSiteList.map(({ index: _index, ...row }) => row)
+		);
 		const workbook = XLSX.utils.book_new();
 		XLSX.utils.book_append_sheet(workbook, worksheet, "Cleaned Data");
 
@@ -255,9 +293,11 @@ export default function CreateCampaignForm({ forAddMore }: CampaignFormProps) {
 	async function continueUpload() {
 		try {
 			const file = convertToFile();
-			await uploadCampaign(file, campaignData);
+			await uploadCampaign(file);
 			showAndHideAlert({
-				message: "Campaign created successfully",
+				message: forAddMore && routeCampaignId
+					? "Site list added successfully"
+					: "Campaign created successfully",
 				type: "success",
 			});
 
@@ -285,7 +325,7 @@ export default function CreateCampaignForm({ forAddMore }: CampaignFormProps) {
 				</h1>
 			</div>
 			<Formik
-				validationSchema={!forAddMore ? schema : addMoreSchema}
+				validationSchema={schema}
 				initialValues={initialValues}
 				onSubmit={!forAddMore ? handleSubmit : handleAddMoreSubmit}>
 				{({ isSubmitting, isValidating }) => (
@@ -306,11 +346,10 @@ export default function CreateCampaignForm({ forAddMore }: CampaignFormProps) {
 						)}
 						{!duplicatesFound && (
 							<Form className="w-full flex flex-col gap-y-10 mt-8 px-12 pb-12">
-								{!forAddMore && (
-									<>
-										<CampaignClient />
-										<CampaignAccountManager />
-									</>
+								{forAddMore && routeCampaignId && (
+									<p className="text-xl text-gray-600">
+										Upload the updated campaign list. Existing S/N rows will be skipped, and only new sites will be added.
+									</p>
 								)}
 								{!siteList && (
 									<label htmlFor="sitelist" className="flex flex-col gap-y-3">
@@ -350,7 +389,7 @@ export default function CreateCampaignForm({ forAddMore }: CampaignFormProps) {
 								<AppButton
 									className="font-semibold"
 									fullyRounded
-									label={forAddMore ? "Save" : "Create Campaign"}
+					label={forAddMore ? "Add More Sites" : "Create Campaign"}
 									showLoading={!isValidating && isSubmitting}
 								/>
 							</Form>

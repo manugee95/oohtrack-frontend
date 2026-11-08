@@ -56,6 +56,12 @@ export const SidePanelContent = function ({ cb }: { cb?: () => void }) {
 		"CLIENT_AGENCY_USER",
 	].includes(role);
 
+	const canAssignUnassignedSites: boolean = [
+		"ACCOUNT_MANAGER",
+		"CHIEF_ACCOUNT_MANAGER",
+		"SUPER_ADMIN",
+	].includes(role);
+
 	const canSeeReports: boolean = [
 		"ACCOUNT_MANAGER",
 		"CHIEF_ACCOUNT_MANAGER",
@@ -108,6 +114,16 @@ export const SidePanelContent = function ({ cb }: { cb?: () => void }) {
 						</span>
 					</Link>
 				)}
+				{canAssignUnassignedSites && (
+					<Link
+						onClick={() => cb?.()}
+						href="/campaigns/unassigned-sites"
+						className={`ml-10 flex items-center gap-5 h-[40px] rounded-lg px-5 ${
+							pathname === "/campaigns/unassigned-sites" ? "bg-[#2A2625D4]" : "bg-transparent"
+						}`}>
+						<span className="text-white text-xl xl:text-2xl font-medium">Unassigned Sites</span>
+					</Link>
+				)}
 				{canSeeReports && (
 					<Link
 						onClick={() => {
@@ -140,6 +156,21 @@ export const SidePanelContent = function ({ cb }: { cb?: () => void }) {
 							<AccountManagerIcon />
 							<span className="text-white text-2xl xl:text-3xl font-medium">
 								Account Managers
+							</span>
+						</Link>
+						<Link
+							onClick={() => {
+								if (cb) cb();
+							}}
+							href="/compliance-entities"
+							className={`flex items-center gap-5 h-[40px] rounded-lg px-5 ${
+								pathname.startsWith("/compliance-entities")
+									? "bg-[#2A2625D4]"
+									: "bg-transparent"
+							}`}>
+							<CategoryIcon />
+							<span className="text-white text-2xl xl:text-3xl font-medium">
+								Compliance Entities
 							</span>
 						</Link>
 						<Link

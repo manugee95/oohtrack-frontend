@@ -85,7 +85,11 @@ export default function CreateFieldAuditorForm({
 				});
 
 				// @ts-ignore
-				editCallback(response);
+				editCallback({
+					...initialValues,
+					...values,
+					...(response?.data ?? response),
+				});
 			}
 		} catch (error) {
 			const err = error as AxiosError;

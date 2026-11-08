@@ -2,11 +2,6 @@
 import React, { useState } from "react";
 import EditIcon from "@/components/shared/icons/EditIcon";
 import Modal from "@/components/shared/Modal";
-import { Form, Formik } from "formik";
-import Dropdown from "@/components/shared/Dropdown";
-import ChevronIcon from "@/components/shared/icons/ChevronIcon";
-import AppInput from "@/components/shared/AppInput";
-import AppButton from "@/components/shared/AppButton";
 import { useRootStore } from "@/components/shared/providers/RootProvider";
 import { AccountManager } from "@/types";
 import CreateAccountManagerForm from "./create/CreateAccountManagerForm";
@@ -14,10 +9,8 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export default function EditAccountManager({
 	accountManager,
-	currentPage,
 }: {
 	accountManager: AccountManager;
-	currentPage: number;
 }) {
 	const { userDetails } = useRootStore();
 	const queryClient = useQueryClient();
@@ -41,31 +34,33 @@ export default function EditAccountManager({
 				<CreateAccountManagerForm
 					initialValues={accountManager}
 					isEditing
-					editCallback={async (user) => {
-						await queryClient.setQueryData(
-							["accountManagers", currentPage],
-							(prev) => {
-								// @ts-ignore
-								const data = { ...prev };
-								const index = data.data.findIndex(
-									// @ts-ignore
-									(d) => d.id === user.id
-								);
+					editCallback={async (updatedManager) => {
+						queryClient.setQueriesData(
+							{ queryKey: ["accountManagers"] },
+							(previous: any) => {
+								const updateRecords = (records: any[]) =>
+									records.map((manager) =>
+										Number(manager.id) === Number(accountManager.id)
+											? { ...manager, ...updatedManager }
+											: manager
+									);
 
-								console.log(index, user);
-
-								data.data[index] = { ...data.data[index], ...user };
-
-								return data;
+								if (Array.isArray(previous)) return updateRecords(previous);
+								if (Array.isArray(previous?.data)) {
+									return { ...previous, data: updateRecords(previous.data) };
+								}
+								if (Array.isArray(previous?.data?.data)) {
+									return {
+										...previous,
+										data: { ...previous.data, data: updateRecords(previous.data.data) },
+									};
+								}
+								return previous;
 							}
 						);
-
 						setShowEdit(false);
-
-						await queryClient.refetchQueries({
-							queryKey: ["accountManagers", currentPage],
-							exact: true,
-							refetchType: "none",
+						void queryClient.invalidateQueries({
+							queryKey: ["accountManagers"],
 						});
 					}}
 				/>

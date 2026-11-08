@@ -94,11 +94,12 @@ export default function CampaignSiteListTable({
 							? data.siteList
 									.slice(startIndex, endIndex)
 									.map((d: Site, i: number) => {
-										const siteAssignment = data?.siteAssignments.find(
+										const siteAssignment = (Array.isArray(data?.siteAssignments) ? data.siteAssignments : []).find(
 											(a: SiteAssignmentReport) => a.siteCode === d.code
 										);
 
 										const hasAssignment = siteAssignment !== undefined;
+										const isUnassigned = d.status === "unassigned" || d.fieldAuditorId === null;
 
 										const isPending = siteAssignment?.status === "pending";
 										const isApproved = siteAssignment?.status === "approved";
@@ -143,7 +144,9 @@ export default function CampaignSiteListTable({
 													<span className="text-xl font-medium">Led</span>
 												</td>
 												<td className="text-center">
-													{hasAssignment ? (
+											{isUnassigned ? (
+												<span className="flex rounded-full border-[1.5px] border-[#FF8617] bg-[#FFE3CA] p-[5px] text-2xl font-medium text-[#FF8617]">Unassigned</span>
+											) : hasAssignment ? (
 														<span
 															className={`flex p-[5px] border-[1.5px] ${
 																isPending

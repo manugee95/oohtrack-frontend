@@ -6,12 +6,16 @@ import ChevronIcon from "@/components/shared/icons/ChevronIcon";
 import { Campaign } from "@/types";
 import DeleteCampaign from "../DeleteCampaign";
 import { useRouter } from "next/navigation";
+import { useRootStore } from "@/components/shared/providers/RootProvider";
 
 export default function CampaignDetailsHeader({
 	campaign,
 }: {
 	campaign: Campaign;
 }) {
+	const { userDetails } = useRootStore();
+	const canDeleteCampaign = userDetails?.role !== "ACCOUNT_MANAGER";
+
 	return (
 		<>
 			<section className="w-full h-[15rem] md:h-[10rem] flex flex-col md:flex-row md:items-center justify-center gap-y-10 md:justify-between border-b border-b-[#C7C7C7">
@@ -38,7 +42,7 @@ export default function CampaignDetailsHeader({
 							label="Compliance Report"
 						/>
 					</Link>
-					<DeleteCampaign campaignId={campaign.id} asBtn={true} />
+					{canDeleteCampaign && <DeleteCampaign campaignId={campaign.id} asBtn={true} />}
 				</div>
 			</section>
 			<section className="flex items-center py-8 gap-8 lg::mb-10">

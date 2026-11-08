@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import useCredentials from "@/hooks/useCredentials";
 import { ApiInstance } from "@/utils";
 import { Industry } from "@/types";
+import { useQueryClient } from "@tanstack/react-query";
 
 const schema = Yup.object().shape({
 	name: Yup.number().required().label("Name"),
@@ -51,6 +52,7 @@ export default function CreateClientForm({
 	},
 }: ClientFormProps) {
 	const { createUser, updateUser } = useUserManagement();
+	const queryClient = useQueryClient();
 	const { showAndHideAlert } = useAlert();
 	const router = useRouter();
 	const { accessToken } = useCredentials();
@@ -76,6 +78,8 @@ export default function CreateClientForm({
 		try {
 			if (!isEditing) {
 				await createUser(values);
+				await queryClient.invalidateQueries({ queryKey: ["clients"] });
+				await queryClient.invalidateQueries({ queryKey: ["clients-for-account-manager-assignment"] });
 
 				showAndHideAlert({
 					message: "User created successfully.",

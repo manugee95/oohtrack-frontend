@@ -76,7 +76,7 @@ export default function ComplianceReportTable() {
 					}))}
 				/>
 			)}
-			<div className="grow w-full overflow-auto">
+			<div className="w-full overflow-x-auto">
 				<table className="w-[250%] md:w-[180%]" cellPadding={15}>
 					<thead className="border-b border-t border-[#C7C7C7] border-t-[#C7C7C7] bg-[#f5f5f5]">
 						<tr>

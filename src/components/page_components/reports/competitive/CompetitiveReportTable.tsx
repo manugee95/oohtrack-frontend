@@ -94,7 +94,7 @@ export default function CompetitiveReportTable() {
 				)}
 			</Portal>
 
-			<div className="grow w-full overflow-auto xl:overflow-visible">
+			<div className="w-full overflow-x-auto">
 				<table className="w-[250%] md:w-[150%] xl:w-full" cellPadding={15}>
 					<thead className="border-b border-t border-[#C7C7C7] border-t-[#C7C7C7] bg-[#f5f5f5]">
 						<tr>

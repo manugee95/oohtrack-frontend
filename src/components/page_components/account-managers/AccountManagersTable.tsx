@@ -157,7 +157,6 @@ export default function AccountManagersTable() {
 												items={[
 													<EditAccountManager
 														accountManager={d}
-														currentPage={currentPage}
 													/>,
 													<DeactivateAccountManager user={d} userId={d.id} />,
 													<ResetAccountManagerPassword />,

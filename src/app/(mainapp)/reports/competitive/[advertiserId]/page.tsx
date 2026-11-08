@@ -7,7 +7,7 @@ export default async function page() {
 	return (
 		<>
 			<CompetitiveReportHeader />
-			<section className="bg-white rounded-2xl border border-[#E2E2E2] h-[70vh] max-h-[70vh]">
+			<section className="bg-white rounded-2xl border border-[#E2E2E2] min-h-[70vh] h-max">
 				<CompetitiveReportTable />
 			</section>
 		</>

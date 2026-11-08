@@ -8,6 +8,7 @@ import ClientsTableActions from "./ClientsTableActions";
 import EditClientInfo from "./EditClientInfo";
 import DeactivateClient from "./DeactivateClient";
 import ResetClientPassword from "./ResetClientPassword";
+import ReassignClientAccountManager from "./ReassignClientAccountManager";
 import useUserManagement from "@/hooks/useUserManagement";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import ClientPlaceholder from "@/components/shared/ClientPlaceholder";
@@ -18,7 +19,7 @@ export default function ClientsTable() {
 	const [currentPage, setCurrentPage] = useState(1);
 	const [search, setSearch] = useState("");
 
-	const { data, isLoading, error, isFetching } = useQuery({
+	const { data, isLoading, isFetching, isError } = useQuery({
 		queryKey: ["clients", currentPage, search],
 		queryFn: async () => {
 			const response = await getClients(currentPage, search);
@@ -77,7 +78,7 @@ export default function ClientsTable() {
 										</td>
 										<td className="text-center">
 											<span className="text-2xl font-medium">
-												{d.advertiser.name}
+												{d.advertiser?.name ?? d.advertiserName ?? d.name ?? d.email ?? "Unnamed client"}
 											</span>
 										</td>
 										<td className="">
@@ -85,7 +86,7 @@ export default function ClientsTable() {
 										</td>
 										<td className="text-center">
 											<span className="text-2xl font-medium">
-												{d.industry.name}
+												{d.industry?.name ?? d.industryName ?? "—"}
 											</span>
 										</td>
 										<td className="text-center">
@@ -111,6 +112,7 @@ export default function ClientsTable() {
 												)}
 												items={[
 													<EditClientInfo client={d} />,
+													<ReassignClientAccountManager client={d} />,
 													<DeactivateClient />,
 													<ResetClientPassword />,
 												]}
@@ -123,7 +125,9 @@ export default function ClientsTable() {
 										</td>
 									</tr>
 							  ))
-							: <EmptyTableRow colSpan={7} />}
+							: isError ? (
+								<tr><td colSpan={7} className="py-8 text-center text-2xl text-red-600">Could not load clients. Please refresh and try again.</td></tr>
+							) : <EmptyTableRow colSpan={7} />}
 					</tbody>
 				</table>
 			</div>

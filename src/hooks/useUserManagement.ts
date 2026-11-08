@@ -2,6 +2,35 @@ import { ApiInstance } from "@/utils";
 import { AccountManager, Advertiser, Client, FieldAuditor } from "@/types";
 import useCredentials from "./useCredentials";
 
+function normalizeClientPage(payload: any) {
+	const candidates = [
+		payload,
+		payload?.data,
+		payload?.clients,
+		payload?.users,
+		payload?.results,
+		payload?.rows,
+		payload?.data?.data,
+		payload?.data?.clients,
+		payload?.data?.users,
+		payload?.data?.results,
+		payload?.data?.rows,
+		payload?.data?.data?.clients,
+		payload?.data?.data?.users,
+	];
+	const clients = candidates.find(Array.isArray) ?? [];
+	const totalPages =
+		payload?.totalPages ??
+		payload?.pagination?.totalPages ??
+		payload?.meta?.totalPages ??
+		payload?.data?.totalPages ??
+		payload?.data?.pagination?.totalPages ??
+		payload?.data?.meta?.totalPages ??
+		1;
+
+	return { ...payload, data: clients, totalPages };
+}
+
 export default function useUserManagement() {
 	const { accessToken } = useCredentials();
 
@@ -41,7 +70,7 @@ export default function useUserManagement() {
 					},
 				}
 			);
-			return response.data;
+			return normalizeClientPage(response.data);
 		} catch (error) {
 			throw error;
 		}

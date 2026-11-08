@@ -61,12 +61,12 @@ export default function SiteReportInfo() {
 							Structure
 						</span>
 						<span className="text-appBlack text-2xl font-medium flex items-center gap-2">
-							{reportBeingViewed?.Structure.name.toLowerCase() === "ok" ? (
+							{reportBeingViewed?.Structure?.name?.toLowerCase() === "ok" ? (
 								<>
 									Ok <CheckedIcon.Secondary />
 								</>
 							) : (
-								reportBeingViewed?.Structure.name
+								reportBeingViewed?.Structure?.name
 							)}
 						</span>
 					</div>
@@ -75,12 +75,12 @@ export default function SiteReportInfo() {
 							Poster
 						</span>
 						<span className="text-appBlack text-2xl font-medium flex items-center gap-2">
-							{reportBeingViewed?.Poster.name.toLowerCase() === "ok" ? (
+							{reportBeingViewed?.Poster?.name?.toLowerCase() === "ok" ? (
 								<>
 									Ok <CheckedIcon.Secondary />
 								</>
 							) : (
-								reportBeingViewed?.Poster.name
+								reportBeingViewed?.Poster?.name
 							)}
 						</span>
 					</div>
@@ -89,7 +89,7 @@ export default function SiteReportInfo() {
 							Illumination
 						</span>
 						<span className="text-appBlack text-2xl font-medium flex items-center gap-2">
-							{reportBeingViewed?.Illumination.name}
+							{reportBeingViewed?.Illumination?.name}
 						</span>
 					</div>
 					<div className="w-full flex items-center justify-between py-6 border-b border-b-[#dfdfdf]">
@@ -97,7 +97,7 @@ export default function SiteReportInfo() {
 							Route
 						</span>
 						<span className="text-appBlack text-2xl font-medium flex items-center gap-2">
-							{reportBeingViewed?.Route.name}
+							{reportBeingViewed?.Route?.name}
 						</span>
 					</div>
 					<div className="w-full flex items-center justify-between py-6 border-b border-b-[#dfdfdf]">
@@ -105,7 +105,7 @@ export default function SiteReportInfo() {
 							Side of Traffic
 						</span>
 						<span className="text-appBlack text-2xl font-medium flex items-center gap-2">
-							{reportBeingViewed?.Side.name}
+							{reportBeingViewed?.Side?.name}
 						</span>
 					</div>
 					<div className="w-full flex items-center justify-between py-6 border-b border-b-[#dfdfdf]">

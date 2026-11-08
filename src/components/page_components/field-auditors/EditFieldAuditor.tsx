@@ -2,23 +2,15 @@
 import React, { useState } from "react";
 import EditIcon from "@/components/shared/icons/EditIcon";
 import Modal from "@/components/shared/Modal";
-import { Form, Formik } from "formik";
-import Dropdown from "@/components/shared/Dropdown";
-import ChevronIcon from "@/components/shared/icons/ChevronIcon";
-import AppInput from "@/components/shared/AppInput";
-import AppButton from "@/components/shared/AppButton";
-import StatesCovered from "./create/StatesCovered";
 import { FieldAuditor } from "@/types";
 import { useRootStore } from "@/components/shared/providers/RootProvider";
 import CreateFieldAuditorForm from "./create/CreateFieldAuditorForm";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function EditFieldAuditor({
 	fieldAuditor,
-	currentPage,
 }: {
 	fieldAuditor: FieldAuditor;
-	currentPage: number;
 }) {
 	const { userDetails } = useRootStore();
 	const queryClient = useQueryClient();
@@ -53,33 +45,30 @@ export default function EditFieldAuditor({
 						phone: fieldAuditor.phone ?? "",
 					}}
 					isEditing
-					editCallback={async (user) => {
-						await queryClient.setQueryData(
-							["fieldAuditors", currentPage],
-							(prev) => {
-								// @ts-ignore
-								const data = { ...prev };
-								const index = data.data.findIndex(
-									// @ts-ignore
-									(d) => d.id === user.id
-								);
-
-								console.log(index, user);
-
-								data.data[index] = { ...data.data[index], ...user };
-								console.log(data);
-
-								return data;
+					editCallback={async (updatedAuditor) => {
+						queryClient.setQueriesData(
+							{ queryKey: ["fieldAuditors"] },
+							(previous: any) => {
+								const updateRecords = (records: any[]) =>
+									records.map((auditor) =>
+										Number(auditor.id) === Number(fieldAuditor.id)
+											? { ...auditor, ...updatedAuditor }
+											: auditor
+									);
+								if (Array.isArray(previous?.data)) {
+									return { ...previous, data: updateRecords(previous.data) };
+								}
+								if (Array.isArray(previous?.data?.data)) {
+									return {
+										...previous,
+										data: { ...previous.data, data: updateRecords(previous.data.data) },
+									};
+								}
+								return previous;
 							}
 						);
-
 						setShowEdit(false);
-
-						await queryClient.refetchQueries({
-							queryKey: ["fieldAuditors", currentPage],
-							exact: true,
-							refetchType: "none",
-						});
+						void queryClient.invalidateQueries({ queryKey: ["fieldAuditors"] });
 					}}
 				/>
 			</Modal>

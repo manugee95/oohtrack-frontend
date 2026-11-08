@@ -14,10 +14,10 @@ export default function AllocationsTable() {
 	const { accessToken } = useCredentials();
 	const [currentPage, setCurrentPage] = useState(1);
 
-	const { data, isLoading, isFetching } = useQuery({
-		queryKey: ["campaigns", currentPage],
+	const { data, isLoading, isFetching, isError, error } = useQuery({
+		queryKey: ["campaign-allocations", currentPage],
 		queryFn: async () => {
-			const response = await ApiInstance.get("/campaign-allocations", {
+			const response = await ApiInstance.get(`/campaign-allocations?page=${currentPage}&limit=10`, {
 				headers: {
 					"auth-token": accessToken,
 				},
@@ -31,9 +31,9 @@ export default function AllocationsTable() {
 	});
 
 	return (
-		<div className="h-full flex flex-col">
+		<div className="min-h-[70vh] flex flex-col">
 			<AllocationsTableActions />
-			<div className="grow w-full overflow-auto xl:overflow-visible">
+			<div className="w-full overflow-x-auto">
 				<table className="w-[100%] md:w-[100%] xl:w-full" cellPadding={15}>
 					<thead className="border-b border-t border-[#C7C7C7] border-t-[#C7C7C7] bg-[#f5f5f5]">
 						<tr>
@@ -70,18 +70,20 @@ export default function AllocationsTable() {
 						</tr>
 					</thead>
 					<tbody>
-						{isLoading || isFetching
+						{isError ? (
+							<tr><td colSpan={8} className="py-8 text-center text-2xl text-red-600">{(error as any)?.response?.data?.error ?? (error as any)?.response?.data?.message ?? "Could not load campaign allocations."}</td></tr>
+						) : isLoading || isFetching
 							? Array(5)
 									.fill("")
 									.map((d, index) => <CampaignPlaceholder key={index} />)
 							: data?.data?.length
 							? data.data.map((d: CampaignAllocation, i: number) => (
 									<tr
-										key={i}
+										key={d.mainId ?? d.campaignId ?? i}
 										className="border-b-[#E6E6E6] border-b 
                         ">
 										<td className="text-center">
-											<span className="text-2xl font-medium">{i + 1}</span>
+										<span className="text-2xl font-medium">{(currentPage - 1) * 10 + i + 1}</span>
 										</td>
 										<td className="text-center hidden xl:table-cell">
 											<span className="text-2xl font-medium">
@@ -90,7 +92,7 @@ export default function AllocationsTable() {
 										</td>
 										<td className="text-center">
 											<span className="text-2xl font-medium">
-												{d.client?.name}
+												{d.client?.name ?? "-"}
 											</span>
 										</td>
 										<td className="text-center">
@@ -100,7 +102,7 @@ export default function AllocationsTable() {
 										</td>
 										<td className="text-center hidden xl:table-cell">
 											<span className="text-2xl font-medium text-center">
-												{new Date(d.dateUploaded!).toDateString()}
+												{d.dateUploaded ? new Date(d.dateUploaded).toDateString() : "-"}
 											</span>
 										</td>
 										<td className="text-center hidden xl:table-cell">

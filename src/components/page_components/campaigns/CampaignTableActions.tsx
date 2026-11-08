@@ -7,12 +7,20 @@ import ChevronIcon from "@/components/shared/icons/ChevronIcon";
 import FiltersIcon from "@/components/shared/icons/FiltersIcon";
 import SearchInput from "@/components/shared/SearchInput";
 import Kebab from "@/components/shared/icons/Kebab";
+import AddMoreSites from "./AddMoreSites";
+import { useRootStore } from "@/components/shared/providers/RootProvider";
 
 export default function CampaignTableActions({
 	setSearch,
+	showAddMoreSites = true,
 }: {
 	setSearch: (val: string) => void;
+	showAddMoreSites?: boolean;
 }) {
+	const { userDetails } = useRootStore();
+	const canAddMoreSites =
+		showAddMoreSites && userDetails?.role !== "ACCOUNT_MANAGER";
+
 	return (
 		<div className="p-8 flex flex-col gap-y-5 md:flex-row md:items-center justify-between">
 			<div className="flex items-center gap-x-7">
@@ -39,6 +47,7 @@ export default function CampaignTableActions({
 					</AppButton>
 				</div> */}
 			</div>
+			{canAddMoreSites && <AddMoreSites />}
 		</div>
 	);
 }
