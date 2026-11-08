@@ -68,7 +68,8 @@ export default function CampaignsTable({
 			for (let page = 1; page <= 100; page++) {
 				const result = page === currentPage ? currentResult : await getPage(page);
 				if (!result.data.length) break;
-				inferredPageSize ??= result.data.length;
+				const pageSize = inferredPageSize ?? result.data.length;
+				inferredPageSize = pageSize;
 				const signature = result.data.map((campaign: Campaign) => campaign.id ?? campaign.campaignID ?? JSON.stringify(campaign)).join("|");
 				if (seenPageSignatures.has(signature)) break;
 				seenPageSignatures.add(signature);
@@ -78,7 +79,7 @@ export default function CampaignsTable({
 					inferredPageSize = result.pageSize ?? inferredPageSize;
 					break;
 				}
-				if (result.data.length < inferredPageSize) break;
+				if (result.data.length < pageSize) break;
 			}
 			return {
 				...currentResult,
