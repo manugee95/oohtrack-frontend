@@ -53,11 +53,11 @@ export default function ComplianceReportTable() {
 						"Board Type": d.boardType,
 						"Media Owner": d.mediaOwner,
 						message: d.message,
-						Poster: d.Poster.name,
-						Structure: d.Structure.name,
-						Route: d.Route.name,
-						Illumination: d.Illumination.name,
-						Side: d.Side.name,
+						Poster: d.Poster?.name ?? "-",
+						Structure: d.Structure?.name ?? "-",
+						Route: d.Route?.name ?? "-",
+						Illumination: d.Illumination?.name ?? "-",
+						Side: d.Side?.name ?? "-",
 						BSV: d.bsv,
 						Remark: d.comment,
 						"Date Captured": `${new Date(d.uploadedAt).toLocaleDateString(
@@ -180,24 +180,24 @@ export default function ComplianceReportTable() {
 									</td>
 									<td className="text-center">
 										<span className="text-2xl font-medium">
-											{d.Poster.name}
+											{d.Poster?.name ?? "-"}
 										</span>
 									</td>
 									<td className="text-center">
 										<span className="text-2xl font-medium">
-											{d.Structure.name}
+											{d.Structure?.name ?? "-"}
 										</span>
 									</td>
 									<td className="text-center">
-										<span className="text-2xl font-medium">{d.Route.name}</span>
+										<span className="text-2xl font-medium">{d.Route?.name ?? "-"}</span>
 									</td>
 									<td className="text-center">
 										<span className="text-2xl font-medium">
-											{d.Illumination.name}
+											{d.Illumination?.name ?? "-"}
 										</span>
 									</td>
 									<td className="text-center">
-										<span className="text-2xl font-medium">{d.Side.name}</span>
+										<span className="text-2xl font-medium">{d.Side?.name ?? "-"}</span>
 									</td>
 									<td className="text-center">
 										<span className="text-2xl font-medium">{d.bsv}</span>
