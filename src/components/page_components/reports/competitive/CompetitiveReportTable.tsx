@@ -12,6 +12,7 @@ import EmptyTableRow from "@/components/shared/EmptyTableRow";
 import { CompetitiveUpload } from "@/types";
 import Link from "next/link";
 import Portal from "@/components/shared/Portal";
+import { formatCapturedDate } from "@/utils/excelReport";
 
 export default function CompetitiveReportTable() {
 	const router = useRouter();
@@ -77,7 +78,23 @@ export default function CompetitiveReportTable() {
 
 	return (
 		<div className="h-full flex flex-col">
-			<CompetitiveReportTableActions />
+			<CompetitiveReportTableActions
+				reports={dataToDisplay.map((report) => ({
+					Advertiser: report.advertiser.name,
+					Brand: report.brand.name,
+					Board: report.boardType.name,
+					Category: report.category.name,
+					Address: report.address,
+					City: report.city.name,
+					State: report.state.name,
+					Region: report.region.name,
+					Latitude: report.latitude,
+					Longitude: report.longitude,
+					"Close Shot URL": report.closeShotUrl,
+					"Long Shot URL": report.longShotUrl,
+					"Date Captured": formatCapturedDate(report.dateCaptured),
+				}))}
+			/>
 
 			<Portal elementId="advertiser-name">
 				{dataToDisplay.length > 0 && (

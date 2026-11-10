@@ -12,6 +12,7 @@ import { AxiosError } from "axios";
 import ComplianceReportPlaceholder from "@/components/shared/ComplianceReportPlaceholder";
 import { useReportStore } from "@/components/shared/providers/ReportsProvider";
 import EmptyTableRow from "@/components/shared/EmptyTableRow";
+import { formatCapturedDate } from "@/utils/excelReport";
 
 export default function ComplianceReportTable() {
 	const router = useRouter();
@@ -53,6 +54,10 @@ export default function ComplianceReportTable() {
 						"Board Type": d.boardType,
 						"Media Owner": d.mediaOwner,
 						message: d.message,
+						Latitude: d.latitude,
+						Longitude: d.longitude,
+						"Close Shot URL": d.closeShotUrl,
+						"Long Shot URL": d.longShotUrl,
 						Poster: d.Poster?.name ?? "-",
 						Structure: d.Structure?.name ?? "-",
 						Route: d.Route?.name ?? "-",
@@ -60,19 +65,7 @@ export default function ComplianceReportTable() {
 						Side: d.Side?.name ?? "-",
 						BSV: d.bsv,
 						Remark: d.comment,
-						"Date Captured": `${new Date(d.uploadedAt).toLocaleDateString(
-							"en-US",
-							{
-								dateStyle: "medium",
-							}
-						)} at ${new Date(d.uploadedAt)
-							.toLocaleTimeString("en-US", {
-								hour: "2-digit",
-								minute: "2-digit",
-								hour12: true,
-							})
-							.replace(" AM", ":am")
-							.replace(" PM", ":pm")}`,
+						"Date Captured": formatCapturedDate(d.dateCaptured),
 					}))}
 				/>
 			)}

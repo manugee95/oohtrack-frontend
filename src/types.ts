@@ -204,6 +204,12 @@ export interface CompetitiveUpload {
 	geolocations: string;
 	id: number;
 	images: string[];
+	imageUrls?: string[];
+	latitude?: number | string;
+	longitude?: number | string;
+	closeShotUrl?: string | null;
+	longShotUrl?: string | null;
+	dateCaptured?: string | Date | null;
 	region: { id: number; name: string };
 	regionId: number;
 	state: { id: number; name: string };

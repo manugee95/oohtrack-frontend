@@ -11,8 +11,13 @@ import localeEn from "air-datepicker/locale/en";
 import CalendarIcon from "@/components/shared/icons/CalendarIcon";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { downloadExcelReport } from "@/utils/excelReport";
 
-export default function CompetitiveReportTableActions() {
+export default function CompetitiveReportTableActions({
+	reports,
+}: {
+	reports: Array<Record<string, unknown>>;
+}) {
 	const calendarRef = useRef<AirDatepicker<HTMLElement> | null>(null);
 
 	const params = useParams();
@@ -42,7 +47,10 @@ export default function CompetitiveReportTableActions() {
 					</AppButton>
 				</div>
 				<div className="w-[150px]">
-					<AppButton className="!bg-appBlack !h-[40px]" fullyRounded>
+					<AppButton
+						onClick={() => void downloadExcelReport("Competitive_Report.xlsx", reports)}
+						className="!bg-appBlack !h-[40px]"
+						fullyRounded>
 						<div className="flex items-center gap-x-5">
 							<ExportIcon />
 							<span className="text-2xl font-medium text-white">Export</span>

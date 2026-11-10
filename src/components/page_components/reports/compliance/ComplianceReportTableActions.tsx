@@ -5,39 +5,13 @@ import PrintIcon from "@/components/shared/icons/PrintIcon";
 import ExportIcon from "@/components/shared/icons/ExportIcon";
 import ChevronIcon from "@/components/shared/icons/ChevronIcon";
 import Dropdown from "@/components/shared/Dropdown";
-import * as XLSX from "xlsx";
+import { downloadExcelReport } from "@/utils/excelReport";
 
 export default function ComplianceReportTableActions({
 	reports,
 }: {
 	reports: any;
 }) {
-	function convertToFile(data: any) {
-		// Convert updated data back to a file
-		const worksheet = XLSX.utils.json_to_sheet(data);
-		const workbook = XLSX.utils.book_new();
-		XLSX.utils.book_append_sheet(workbook, worksheet, "Cleaned Data");
-
-		const excelBuffer = XLSX.write(workbook, {
-			bookType: "xlsx",
-			type: "array",
-		});
-
-		const fileBlob = new Blob([excelBuffer], {
-			type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-		});
-
-		// Create a download link and trigger a click event
-		const url = URL.createObjectURL(fileBlob);
-		const a = document.createElement("a");
-		a.href = url;
-		a.download = "Cleaned_Data.xlsx"; // Default file name
-		document.body.appendChild(a);
-		a.click();
-		document.body.removeChild(a);
-		URL.revokeObjectURL(url);
-	}
-
 	return (
 		<div className="p-8 flex flex-col gap-y-5 md:flex-row md:items-center justify-between">
 			<div className="flex items-center gap-x-8">
@@ -76,7 +50,7 @@ export default function ComplianceReportTableActions({
 						)}
 						items={[
 							<button
-								onClick={() => convertToFile(reports)}
+								onClick={() => void downloadExcelReport("Cleaned_Data.xlsx", reports)}
 								className="w-full h-full text-2xl font-medium"
 								key="">
 								Excel
