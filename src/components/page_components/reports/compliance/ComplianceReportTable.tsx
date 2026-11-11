@@ -1,8 +1,5 @@
 "use client";
 import React, { useState } from "react";
-import Pagination from "@/components/shared/Pagination";
-import AppButton from "@/components/shared/AppButton";
-import { useRouter } from "next/navigation";
 import ComplianceReportTableActions from "./ComplianceReportTableActions";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
@@ -10,63 +7,104 @@ import { ApiInstance } from "@/utils";
 import useCredentials from "@/hooks/useCredentials";
 import { AxiosError } from "axios";
 import ComplianceReportPlaceholder from "@/components/shared/ComplianceReportPlaceholder";
-import { useReportStore } from "@/components/shared/providers/ReportsProvider";
 import EmptyTableRow from "@/components/shared/EmptyTableRow";
-import { formatCapturedDate } from "@/utils/excelReport";
+import { downloadExcelReport, formatCapturedDate } from "@/utils/excelReport";
+import useAlert from "@/hooks/useAlert";
+
+function getComplianceRows(responseData: any) {
+	return Array.isArray(responseData?.data)
+		? responseData.data
+		: Array.isArray(responseData?.data?.data)
+			? responseData.data.data
+			: [];
+}
+
+function toComplianceExportRow(report: any, index: number) {
+	return {
+		SN: index + 1,
+		Code: report.siteCode,
+		State: "Abia",
+		City: report.city,
+		Address: report.address,
+		Brand: report.brand,
+		"Board Type": report.boardType,
+		"Media Owner": report.mediaOwner,
+		message: report.message,
+		Latitude: report.latitude,
+		Longitude: report.longitude,
+		"Close Shot URL": report.closeShotUrl
+			? { text: "View Photo", hyperlink: report.closeShotUrl }
+			: "",
+		"Long Shot URL": report.longShotUrl
+			? { text: "View Photo", hyperlink: report.longShotUrl }
+			: "",
+		Poster: report.Poster?.name ?? "-",
+		Structure: report.Structure?.name ?? "-",
+		Route: report.Route?.name ?? "-",
+		Illumination: report.Illumination?.name ?? "-",
+		Side: report.Side?.name ?? "-",
+		BSV: report.bsv,
+		Remark: report.comment,
+		"Date Captured": formatCapturedDate(report.dateCaptured),
+	};
+}
 
 export default function ComplianceReportTable() {
-	const router = useRouter();
 	const params = useParams<{ campaignId: string }>();
 	const { accessToken } = useCredentials();
-	const [currentPage, setCurrentPage] = useState(1);
+	const { showAndHideAlert } = useAlert();
+	const [isExporting, setIsExporting] = useState(false);
+
+	async function fetchComplianceReports() {
+		const response = await ApiInstance.get(
+			`/view-campaign-compliance/${params.campaignId}`,
+			{
+				headers: {
+					"auth-token": accessToken,
+				},
+			}
+		);
+		return response.data;
+	}
 
 	const { data, isLoading, error, isFetching } = useQuery({
 		queryKey: ["compliance-reports", params.campaignId],
-		queryFn: async () => {
-			const res = await ApiInstance.get(
-				`/view-campaign-compliance/${params.campaignId}`,
-				{
-					headers: {
-						"auth-token": accessToken,
-					},
-				}
-			);
-
-			return res.data;
-		},
+		queryFn: fetchComplianceReports,
 	});
 
 	if (error && error instanceof AxiosError && error.response?.status === 404) {
 		throw new Error(error.response.data.message);
 	}
 
+	const reportRows = getComplianceRows(data);
+
+	async function exportCampaignReports() {
+		setIsExporting(true);
+		try {
+			if (!reportRows.length) {
+				throw new Error("No campaign report records are available to export.");
+			}
+			await downloadExcelReport(
+				"Cleaned_Data.xlsx",
+				reportRows.map(toComplianceExportRow)
+			);
+		} catch (exportError) {
+			const message =
+				exportError instanceof Error
+					? exportError.message
+				: "Could not generate the complete campaign report.";
+			showAndHideAlert({ message, type: "error" });
+		} finally {
+			setIsExporting(false);
+		}
+	}
+
 	return (
 		<div className="w-full h-full flex flex-col">
-			{data?.data && (
+			{reportRows.length > 0 && (
 				<ComplianceReportTableActions
-					reports={data?.data?.map((d: any, i: number) => ({
-						SN: i + 1,
-						Code: d.siteCode,
-						State: "Abia",
-						City: d.city,
-						Address: d.address,
-						Brand: d.brand,
-						"Board Type": d.boardType,
-						"Media Owner": d.mediaOwner,
-						message: d.message,
-						Latitude: d.latitude,
-						Longitude: d.longitude,
-						"Close Shot URL": d.closeShotUrl,
-						"Long Shot URL": d.longShotUrl,
-						Poster: d.Poster?.name ?? "-",
-						Structure: d.Structure?.name ?? "-",
-						Route: d.Route?.name ?? "-",
-						Illumination: d.Illumination?.name ?? "-",
-						Side: d.Side?.name ?? "-",
-						BSV: d.bsv,
-						Remark: d.comment,
-						"Date Captured": formatCapturedDate(d.dateCaptured),
-					}))}
+					onExport={() => void exportCampaignReports()}
+					isExporting={isExporting}
 				/>
 			)}
 			<div className="w-full overflow-x-auto">
@@ -134,8 +172,8 @@ export default function ComplianceReportTable() {
 
 						{!isLoading &&
 							!isFetching &&
-							data?.data?.length > 0 &&
-							data?.data?.map((d: any, i: number) => (
+							reportRows.length > 0 &&
+							reportRows.map((d: any, i: number) => (
 								<tr
 									key={i}
 									className="border-b-[#E6E6E6] border-b 
@@ -218,23 +256,12 @@ export default function ComplianceReportTable() {
 									</td>
 								</tr>
 							))}
-						{!isLoading && !isFetching && data?.data?.length === 0 && (
+		{!isLoading && !isFetching && reportRows.length === 0 && (
 							<EmptyTableRow colSpan={17} />
 						)}
 					</tbody>
 				</table>
 			</div>
-			{!isLoading && !isFetching && data?.data?.length > 0 && data?.pagination && (
-				<div className="my-12 flex items-center justify-center md:justify-end px-5 md:px-10">
-					<Pagination
-						currentPage={currentPage}
-						totalPages={Math.ceil(
-							data?.pagination.totalRecords / data.pagination.limit
-						)}
-						setCurrentPage={setCurrentPage}
-					/>
-				</div>
-			)}
 		</div>
 	);
 }

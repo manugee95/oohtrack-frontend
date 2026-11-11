@@ -1,4 +1,4 @@
-import ExcelJS from "exceljs";
+import type * as ExcelJS from "exceljs";
 
 const LOGO_URL = "/mediatrak-logo.jpeg";
 const HEADER_ROW = 11;
@@ -24,6 +24,16 @@ export function formatCapturedDate(value: string | Date | null | undefined) {
 function toExcelValue(value: unknown): ExcelJS.CellValue {
 	if (Array.isArray(value)) return value.join(", ");
 	if (value === null || value === undefined) return "";
+	if (
+		typeof value === "object" &&
+		"hyperlink" in value &&
+		typeof value.hyperlink === "string"
+	) {
+		return {
+			text: "text" in value && typeof value.text === "string" ? value.text : "View Photo",
+			hyperlink: value.hyperlink,
+		};
+	}
 	if (typeof value === "object") return JSON.stringify(value);
 	return value as ExcelJS.CellValue;
 }
@@ -32,7 +42,8 @@ export async function downloadExcelReport(
 	filename: string,
 	rows: Array<Record<string, unknown>>
 ) {
-	const workbook = new ExcelJS.Workbook();
+	const ExcelJSBrowser = await import("exceljs/dist/exceljs.min.js");
+	const workbook = new ExcelJSBrowser.Workbook();
 	const worksheet = workbook.addWorksheet("Report");
 
 	const logoResponse = await fetch(LOGO_URL);
@@ -69,6 +80,11 @@ export async function downloadExcelReport(
 		for (const report of rows) {
 			const dataRow = worksheet.addRow(columns.map((column) => toExcelValue(report[column])));
 			dataRow.alignment = { vertical: "top", wrapText: true };
+			dataRow.eachCell((cell) => {
+				if (cell.value && typeof cell.value === "object" && "hyperlink" in cell.value) {
+					cell.font = { color: { argb: "FF0563C1" }, underline: true };
+				}
+			});
 		}
 
 		columns.forEach((column, index) => {

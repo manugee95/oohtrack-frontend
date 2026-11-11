@@ -5,12 +5,13 @@ import PrintIcon from "@/components/shared/icons/PrintIcon";
 import ExportIcon from "@/components/shared/icons/ExportIcon";
 import ChevronIcon from "@/components/shared/icons/ChevronIcon";
 import Dropdown from "@/components/shared/Dropdown";
-import { downloadExcelReport } from "@/utils/excelReport";
 
 export default function ComplianceReportTableActions({
-	reports,
+	onExport,
+	isExporting,
 }: {
-	reports: any;
+	onExport(): void;
+	isExporting: boolean;
 }) {
 	return (
 		<div className="p-8 flex flex-col gap-y-5 md:flex-row md:items-center justify-between">
@@ -50,10 +51,11 @@ export default function ComplianceReportTableActions({
 						)}
 						items={[
 							<button
-								onClick={() => void downloadExcelReport("Cleaned_Data.xlsx", reports)}
-								className="w-full h-full text-2xl font-medium"
+								onClick={onExport}
+								disabled={isExporting}
+								className="w-full h-full text-2xl font-medium disabled:opacity-50"
 								key="">
-								Excel
+								{isExporting ? "Generating..." : "Excel"}
 							</button>,
 							<button className="w-full h-full text-2xl font-medium" key="">
 								PDF

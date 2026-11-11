@@ -1,11 +1,10 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import AppButton from "@/components/shared/AppButton";
 import CompetitiveReportTableActions from "./CompetitiveReportTableActions";
-import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import useCredentials from "@/hooks/useCredentials";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ApiInstance, getHumanReadableAddress } from "@/utils";
 import CampaignPlaceholder from "@/components/shared/CampaignPlaceholder";
 import EmptyTableRow from "@/components/shared/EmptyTableRow";
@@ -13,87 +12,193 @@ import { CompetitiveUpload } from "@/types";
 import Link from "next/link";
 import Portal from "@/components/shared/Portal";
 import { formatCapturedDate } from "@/utils/excelReport";
+import { downloadExcelReport } from "@/utils/excelReport";
+import Pagination from "@/components/shared/Pagination";
+import useAlert from "@/hooks/useAlert";
+
+const REPORTS_PER_PAGE = 10;
+
+function getReportRows(data: any): CompetitiveUpload[] {
+	const rows =
+		data?.advertiserHasComplianceReport ??
+		data?.advertiserCompetitiveData ??
+		data?.data?.advertiserHasComplianceReport ??
+		data?.data?.advertiserCompetitiveData ??
+		data?.reports ??
+		data?.data?.reports;
+	return Array.isArray(rows) ? rows : [];
+}
+
+function getReportTotalPages(data: any, rowCount: number, currentPage: number) {
+	const reportedPages =
+		data?.totalPages ??
+		data?.total_pages ??
+		data?.lastPage ??
+		data?.pagination?.totalPages ??
+		data?.pagination?.total_pages ??
+		data?.pagination?.lastPage ??
+		data?.data?.totalPages ??
+		data?.data?.pagination?.totalPages ??
+		data?.meta?.totalPages;
+	if (Number.isFinite(Number(reportedPages)) && Number(reportedPages) > 0) {
+		return Number(reportedPages);
+	}
+
+	const totalRecords =
+		data?.pagination?.totalRecords ??
+		data?.pagination?.total ??
+		data?.totalRecords ??
+		data?.totalCount ??
+		data?.total ??
+		data?.data?.pagination?.totalRecords ??
+		data?.data?.totalRecords ??
+		data?.meta?.total;
+	const limit =
+		data?.pagination?.limit ??
+		data?.limit ??
+		data?.data?.pagination?.limit ??
+		data?.data?.limit ??
+		REPORTS_PER_PAGE;
+	if (Number.isFinite(Number(totalRecords)) && Number(limit) > 0) {
+		return Math.max(1, Math.ceil(Number(totalRecords) / Number(limit)));
+	}
+	return rowCount >= REPORTS_PER_PAGE ? currentPage + 1 : currentPage;
+}
 
 export default function CompetitiveReportTable() {
-	const router = useRouter();
 	const params = useParams();
 	const { accessToken } = useCredentials();
+	const { showAndHideAlert } = useAlert();
 	const [currentPage, setCurrentPage] = useState(1);
 	const [search, setSearch] = useState("");
-	const [dataToDisplay, setDataToDisplay] = useState<CompetitiveUpload[]>([]);
+	const [isExporting, setIsExporting] = useState(false);
 
-	const { data, isLoading, error, isFetching } = useQuery({
+	async function fetchReportPage(page: number) {
+		const response = await ApiInstance.get(
+			`/competitive-map/${params.advertiserId}?page=${page}&limit=${REPORTS_PER_PAGE}&search=${encodeURIComponent(search)}`,
+			{
+				headers: {
+					"auth-token": accessToken,
+				},
+			}
+		);
+		return response.data;
+	}
+
+	function toExportRow(report: CompetitiveUpload) {
+		return {
+			Advertiser: report.advertiser.name,
+			Brand: report.brand.name,
+			Board: report.boardType.name,
+			Category: report.category.name,
+			Address: report.address,
+			City: report.city.name,
+			State: report.state.name,
+			Region: report.region.name,
+			Latitude: report.latitude,
+			Longitude: report.longitude,
+			"Close Shot URL": report.closeShotUrl
+				? { text: "View Photo", hyperlink: report.closeShotUrl }
+				: "",
+			"Long Shot URL": report.longShotUrl
+				? { text: "View Photo", hyperlink: report.longShotUrl }
+				: "",
+			"Date Captured": formatCapturedDate(report.dateCaptured),
+		};
+	}
+
+	const { data, isLoading, isFetching } = useQuery({
 		queryKey: ["advertisers", currentPage, search, params.advertiserId],
 		queryFn: async () => {
-			const response = await ApiInstance.get(
-				`/competitive-map/${params.advertiserId}?page=${currentPage}&search=${search}`,
-				{
-					headers: {
-						"auth-token": accessToken,
-					},
-				}
+			const responseData = await fetchReportPage(currentPage);
+			const reports = getReportRows(responseData);
+			const reportsWithAddress = await Promise.all(
+				reports.map(async (report) => {
+					const LatLng = JSON.parse(report?.geolocations);
+					const address = await getHumanReadableAddress({
+						lat: LatLng[0].latitude,
+						lng: LatLng[0].longitude,
+					});
+					return { ...report, address };
+				})
 			);
 
-			return response.data;
+			return { ...responseData, reports: reportsWithAddress };
 		},
-		placeholderData: keepPreviousData,
 		retry: false,
 	});
 
-	useEffect(() => {
-		if (data) {
-			if (data.advertiserHasComplianceReport) {
-				Promise.all(
-					data.advertiserHasComplianceReport.map(
-						async (d: CompetitiveUpload) => {
-							const LatLng = JSON.parse(d?.geolocations);
-							const address = await getHumanReadableAddress({
-								lat: LatLng[0].latitude,
-								lng: LatLng[0].longitude,
-							});
+	const dataToDisplay: CompetitiveUpload[] = data?.reports ?? [];
 
-							return { ...d, address };
-						}
-					)
-				).then((val) => {
-					setDataToDisplay(val);
-				});
-			} else {
-				Promise.all(
-					data.advertiserCompetitiveData.map(async (d: CompetitiveUpload) => {
-						const LatLng = JSON.parse(d?.geolocations);
-						const address = await getHumanReadableAddress({
-							lat: LatLng[0].latitude,
-							lng: LatLng[0].longitude,
-						});
+	const totalPages = getReportTotalPages(data, dataToDisplay.length, currentPage);
+	const totalUploads =
+		data?.pagination?.totalRecords ??
+		data?.totalRecords ??
+		data?.totalCount ??
+		data?.total ??
+		dataToDisplay.length;
 
-						return { ...d, address };
-					})
-				).then((val) => {
-					setDataToDisplay(val);
-				});
+	async function exportAllReports() {
+		setIsExporting(true);
+		try {
+			const allReports: CompetitiveUpload[] = [];
+			const seenPageSignatures = new Set<string>();
+			let expectedPages = 1;
+
+			for (let page = 1; page <= 1000; page += 1) {
+				const pageData = await fetchReportPage(page);
+				const pageReports = getReportRows(pageData);
+				if (!pageReports.length) break;
+
+				const signature = pageReports
+					.map((report) => report.id ?? JSON.stringify(report))
+					.join("|");
+				if (seenPageSignatures.has(signature)) {
+					throw new Error(
+						`The API returned the same report records for page ${page}. The full report could not be generated.`
+					);
+				}
+				seenPageSignatures.add(signature);
+				allReports.push(...pageReports);
+				expectedPages = getReportTotalPages(pageData, pageReports.length, page);
+				if (page >= expectedPages || pageReports.length < REPORTS_PER_PAGE) break;
 			}
+
+			if (!allReports.length) {
+				throw new Error("No report records are available to export.");
+			}
+
+			const reportsWithAddress = await Promise.all(
+				allReports.map(async (report) => {
+					if (report.address) return report;
+					const LatLng = JSON.parse(report.geolocations);
+					const address = await getHumanReadableAddress({
+						lat: LatLng[0].latitude,
+						lng: LatLng[0].longitude,
+					});
+					return { ...report, address };
+				})
+			);
+			await downloadExcelReport(
+				"Competitive_Report.xlsx",
+				reportsWithAddress.map(toExportRow)
+			);
+		} catch (exportError) {
+			const message =
+				exportError instanceof Error
+					? exportError.message
+					: "Could not generate the complete report.";
+			showAndHideAlert({ message, type: "error" });
+		} finally {
+			setIsExporting(false);
 		}
-	}, [data]);
+	}
 
 	return (
 		<div className="h-full flex flex-col">
 			<CompetitiveReportTableActions
-				reports={dataToDisplay.map((report) => ({
-					Advertiser: report.advertiser.name,
-					Brand: report.brand.name,
-					Board: report.boardType.name,
-					Category: report.category.name,
-					Address: report.address,
-					City: report.city.name,
-					State: report.state.name,
-					Region: report.region.name,
-					Latitude: report.latitude,
-					Longitude: report.longitude,
-					"Close Shot URL": report.closeShotUrl,
-					"Long Shot URL": report.longShotUrl,
-					"Date Captured": formatCapturedDate(report.dateCaptured),
-				}))}
+				onExport={() => void exportAllReports()}
+				isExporting={isExporting}
 			/>
 
 			<Portal elementId="advertiser-name">
@@ -105,7 +210,7 @@ export default function CompetitiveReportTable() {
 						<span className="flex h-[24px] w-[1px] bg-appBlack"></span>
 						<span className="text-[1.7rem] font-medium">
 							Total Uploads:{" "}
-							<span className="font-bold">{dataToDisplay.length}</span>
+							<span className="font-bold">{totalUploads}</span>
 						</span>
 					</>
 				)}
@@ -211,6 +316,15 @@ export default function CompetitiveReportTable() {
 					</tbody>
 				</table>
 			</div>
+			{!isLoading && totalPages > 1 && (
+				<div className="my-12 flex items-center justify-center md:justify-end px-5 md:px-10">
+					<Pagination
+						currentPage={currentPage}
+						totalPages={totalPages}
+						setCurrentPage={setCurrentPage}
+					/>
+				</div>
+			)}
 		</div>
 	);
 }
