@@ -94,14 +94,6 @@ export default function SiteReportInfo() {
 					</div>
 					<div className="w-full flex items-center justify-between py-6 border-b border-b-[#dfdfdf]">
 						<span className=" font-medium text-2xl w-max flex text-[#797979]">
-							Route
-						</span>
-						<span className="text-appBlack text-2xl font-medium flex items-center gap-2">
-							{reportBeingViewed?.Route?.name}
-						</span>
-					</div>
-					<div className="w-full flex items-center justify-between py-6 border-b border-b-[#dfdfdf]">
-						<span className=" font-medium text-2xl w-max flex text-[#797979]">
 							Side of Traffic
 						</span>
 						<span className="text-appBlack text-2xl font-medium flex items-center gap-2">

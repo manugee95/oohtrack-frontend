@@ -27,10 +27,6 @@ const schema = Yup.object().shape({
 	structureId: Yup.number().required().label("Structure"),
 	posterId: Yup.number().required().label("Poster"),
 	illuminationId: Yup.number().required().label("illumination"),
-	routeId: Yup.number()
-		.transform((value, originalValue) => (originalValue === "" ? undefined : value))
-		.notRequired()
-		.label("Route"),
 	sideId: Yup.number().required().label("Side"),
 });
 
@@ -48,7 +44,6 @@ interface BSV {
 	structureId: number | string;
 	posterId: number | string;
 	illuminationId: number | string;
-	routeId: number | string;
 	sideId: number | string;
 }
 
@@ -87,7 +82,6 @@ export default function UpdateBSV() {
 		structureId: reportBeingViewed?.structureId ?? "",
 		posterId: reportBeingViewed?.posterId ?? "",
 		illuminationId: reportBeingViewed?.illuminationId ?? "",
-		routeId: reportBeingViewed?.routeId ?? "",
 		sideId: reportBeingViewed?.sideId ?? "",
 	};
 
@@ -110,7 +104,6 @@ export default function UpdateBSV() {
 				structureId,
 				posterId,
 				illuminationId,
-				routeId,
 				sideId,
 			} = values;
 
@@ -144,7 +137,6 @@ export default function UpdateBSV() {
 					structureId: Number(structureId),
 					posterId: Number(posterId),
 					illuminationId: Number(illuminationId),
-					routeId: routeId === "" ? undefined : Number(routeId),
 					sideId: Number(sideId),
 				},
 				{
@@ -318,33 +310,7 @@ export default function UpdateBSV() {
 												/>
 											</div>
 										</div>
-										<div className="grid grid-cols-2 gap-5">
-											<div className="w-full flex flex-col gap-y-5">
-												<label
-													className="text-[1.7rem] text-appBlack font-semibold"
-													htmlFor={"routeId"}>
-													Route
-												</label>
-												<Field
-													id={"routeId"}
-													name={"routeId"}
-													className="h-[50px] rounded-2xl bg-[#F5F5F5] text-2xl font-medium px-[10px] outline-none focus:border-primary border-transparent border-[1.5px] transition-all duration-200"
-													as="select">
-													<option value="">Select route (optional)</option>
-													{data.routes.map(
-														(d: { id: number; name: string }, i: number) => (
-															<option key={i} value={d.id}>
-																{d.name}
-															</option>
-														)
-													)}
-												</Field>
-												<ErrorMessage
-													name={"routeId"}
-													component={"p"}
-													className="text-2xl font-medium text-red-400"
-												/>
-											</div>
+							<div className="grid grid-cols-2 gap-5">
 											<div className="w-full flex flex-col gap-y-5">
 												<label
 													className="text-[1.7rem] text-appBlack font-semibold"
