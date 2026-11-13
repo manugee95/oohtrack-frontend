@@ -114,7 +114,7 @@ export default function ClientsTable() {
 													<EditClientInfo client={d} />,
 													<ReassignClientAccountManager client={d} />,
 													<DeactivateClient />,
-													<ResetClientPassword />,
+									<ResetClientPassword userId={d.id} />,
 												]}
 												renderItem={({ item, index }) => (
 													<div className="w-full" key={index}>

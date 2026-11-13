@@ -161,7 +161,7 @@ export default function FieldAuditorsTable() {
 														fieldAuditor={d}
 													/>,
 													<DeactivateFieldAuditor user={d} userId={d.id} />,
-													<ResetFieldAuditorPassword />,
+													<ResetFieldAuditorPassword userId={d.id} />,
 												]}
 												renderItem={({ item, index }) => (
 													<div className="w-full" key={index}>

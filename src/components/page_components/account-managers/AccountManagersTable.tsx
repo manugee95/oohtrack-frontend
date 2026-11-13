@@ -159,7 +159,7 @@ export default function AccountManagersTable() {
 														accountManager={d}
 													/>,
 													<DeactivateAccountManager user={d} userId={d.id} />,
-													<ResetAccountManagerPassword />,
+									<ResetAccountManagerPassword userId={d.id} />,
 												]}
 												renderItem={({ item, index, setOpen, open }) => (
 													<div
