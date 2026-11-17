@@ -9,6 +9,10 @@ import { AxiosError } from "axios";
 import ComplianceReportPlaceholder from "@/components/shared/ComplianceReportPlaceholder";
 import EmptyTableRow from "@/components/shared/EmptyTableRow";
 import { downloadExcelReport, formatCapturedDate } from "@/utils/excelReport";
+import {
+	downloadComplianceReportDocument,
+	getComplianceReportFilename,
+} from "@/utils/complianceReportDocuments";
 import useAlert from "@/hooks/useAlert";
 
 function getComplianceRows(responseData: any) {
@@ -53,7 +57,22 @@ export default function ComplianceReportTable() {
 	const params = useParams<{ campaignId: string }>();
 	const { accessToken } = useCredentials();
 	const { showAndHideAlert } = useAlert();
-	const [isExporting, setIsExporting] = useState(false);
+	const [exportingFormat, setExportingFormat] = useState<"excel" | "pdf" | "powerpoint" | null>(null);
+	const { data: campaign } = useQuery({
+		queryKey: ["campaignDetails", params.campaignId],
+		queryFn: async () => {
+			const response = await ApiInstance.get(`/campaigns/${params.campaignId}`, {
+				headers: { "auth-token": accessToken },
+			});
+			return response.data.campaign;
+		},
+	});
+	const campaignIdentifier = campaign?.campaignID as string | undefined;
+	const advertiserName =
+		campaign?.client?.advertiser?.name ??
+		campaign?.advertiser?.name ??
+		campaign?.client?.name ??
+		campaign?.clientName;
 
 	async function fetchComplianceReports() {
 		const response = await ApiInstance.get(
@@ -78,16 +97,26 @@ export default function ComplianceReportTable() {
 
 	const reportRows = getComplianceRows(data);
 
-	async function exportCampaignReports() {
-		setIsExporting(true);
+	async function exportCampaignReports(format: "excel" | "pdf" | "powerpoint") {
+		setExportingFormat(format);
 		try {
 			if (!reportRows.length) {
 				throw new Error("No campaign report records are available to export.");
 			}
-			await downloadExcelReport(
-				"Cleaned_Data.xlsx",
-				reportRows.map(toComplianceExportRow)
-			);
+			if (format === "excel") {
+				await downloadExcelReport(
+					`${getComplianceReportFilename(reportRows, campaignIdentifier, advertiserName)}.xlsx`,
+					reportRows.map(toComplianceExportRow)
+				);
+			} else {
+				await downloadComplianceReportDocument(
+					format,
+					reportRows,
+					campaignIdentifier,
+					advertiserName,
+					accessToken
+				);
+			}
 		} catch (exportError) {
 			const message =
 				exportError instanceof Error
@@ -95,7 +124,7 @@ export default function ComplianceReportTable() {
 				: "Could not generate the complete campaign report.";
 			showAndHideAlert({ message, type: "error" });
 		} finally {
-			setIsExporting(false);
+			setExportingFormat(null);
 		}
 	}
 
@@ -103,8 +132,8 @@ export default function ComplianceReportTable() {
 		<div className="w-full h-full flex flex-col">
 			{reportRows.length > 0 && (
 				<ComplianceReportTableActions
-					onExport={() => void exportCampaignReports()}
-					isExporting={isExporting}
+					onExport={(format) => void exportCampaignReports(format)}
+					exportingFormat={exportingFormat}
 				/>
 			)}
 			<div className="w-full overflow-x-auto">

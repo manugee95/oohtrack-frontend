@@ -8,10 +8,10 @@ import Dropdown from "@/components/shared/Dropdown";
 
 export default function ComplianceReportTableActions({
 	onExport,
-	isExporting,
+	exportingFormat,
 }: {
-	onExport(): void;
-	isExporting: boolean;
+	onExport(format: "excel" | "pdf" | "powerpoint"): void;
+	exportingFormat: "excel" | "pdf" | "powerpoint" | null;
 }) {
 	return (
 		<div className="p-8 flex flex-col gap-y-5 md:flex-row md:items-center justify-between">
@@ -51,14 +51,25 @@ export default function ComplianceReportTableActions({
 						)}
 						items={[
 							<button
-								onClick={onExport}
-								disabled={isExporting}
+								onClick={() => onExport("excel")}
+								disabled={exportingFormat !== null}
 								className="w-full h-full text-2xl font-medium disabled:opacity-50"
-								key="">
-								{isExporting ? "Generating..." : "Excel"}
+								key="excel">
+								{exportingFormat === "excel" ? "Generating..." : "Excel"}
 							</button>,
-							<button className="w-full h-full text-2xl font-medium" key="">
-								PDF
+							<button
+								onClick={() => onExport("pdf")}
+								disabled={exportingFormat !== null}
+								className="w-full h-full text-2xl font-medium disabled:opacity-50"
+								key="pdf">
+								{exportingFormat === "pdf" ? "Generating..." : "PDF"}
+							</button>,
+							<button
+								onClick={() => onExport("powerpoint")}
+								disabled={exportingFormat !== null}
+								className="w-full h-full text-2xl font-medium disabled:opacity-50"
+								key="powerpoint">
+								{exportingFormat === "powerpoint" ? "Generating..." : "PowerPoint"}
 							</button>,
 						]}
 						renderItem={({ item, index }) => {
