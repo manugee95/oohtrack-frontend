@@ -8,9 +8,12 @@ const HEIGHT = 900;
 const EMU_WIDTH = 12192000;
 const EMU_HEIGHT = 6858000;
 const COLORS = {
-	ink: "#171717",
-	green: "#008F43",
-	cream: "#F5F8F6",
+	ink: "#111111",
+	navy: "#17336F",
+	red: "#E21D2D",
+	green: "#70AD47",
+	brandGreen: "#008F43",
+	cream: "#FFFFFF",
 	muted: "#686868",
 	white: "#FFFFFF",
 };
@@ -158,6 +161,13 @@ function getAdvertiserName(reports: Report[], campaignAdvertiserName?: string) {
 	return "Advertiser";
 }
 
+function getBrandName(reports: Report[]) {
+	const brand = reports.find((report) => report.brand)?.brand;
+	if (typeof brand === "string" && brand.trim()) return brand.trim();
+	if (brand && typeof brand.name === "string" && brand.name.trim()) return brand.name.trim();
+	return "Campaign";
+}
+
 export function getComplianceReportFilename(reports: Report[], campaignIdentifier?: string, campaignAdvertiserName?: string) {
 	const safeName = (value: string) => value.trim().replace(/[^\p{L}\p{N}]+/gu, "_").replace(/^_+|_+$/g, "");
 	const advertiser = safeName(getAdvertiserName(reports, campaignAdvertiserName)) || "Advertiser";
@@ -200,11 +210,16 @@ function brandLogo(logo: string | undefined, x: number, y: number, width = 240, 
 		: `<text x="${x}" y="${y + 48}" font-family="Arial, sans-serif" font-size="27" font-weight="700" fill="${COLORS.ink}">MEDIATRAK</text>`;
 }
 
-function coverSlide(reports: Report[], campaignIdentifier: string | undefined, advertiserName: string | undefined, logo?: string) {
+function coverSlide(reports: Report[], campaignIdentifier: string | undefined, advertiserName: string | undefined, photos: Array<string | undefined>, logo?: string) {
 	const advertiser = getAdvertiserName(reports, advertiserName);
+	const brand = getBrandName(reports);
 	const period = getReportPeriod(campaignIdentifier);
-	return svgDocument(`<rect width="1600" height="900" fill="${COLORS.cream}"/><rect x="0" y="0" width="36" height="900" fill="${COLORS.green}"/><rect x="980" y="0" width="620" height="900" fill="${COLORS.ink}"/><path d="M980 0h620v900H980z" fill="${COLORS.green}" opacity=".12"/><text x="130" y="190" font-family="Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="6" fill="${COLORS.green}">OUT OF HOME</text><text x="130" y="300" font-family="Arial, sans-serif" font-size="68" font-weight="700" fill="${COLORS.ink}">COMPLIANCE</text><text x="130" y="382" font-family="Arial, sans-serif" font-size="68" font-weight="700" fill="${COLORS.ink}">REPORT</text><rect x="130" y="432" width="145" height="7" fill="${COLORS.green}"/><text x="130" y="510" font-family="Arial, sans-serif" font-size="30" fill="${COLORS.muted}">ADVERTISER</text><text x="130" y="555" font-family="Arial, sans-serif" font-size="40" font-weight="700" fill="${COLORS.ink}">${escapeXml(advertiser)}</text><text x="130" y="628" font-family="Arial, sans-serif" font-size="25" fill="${COLORS.muted}">${escapeXml(period)}</text><text x="1040" y="300" font-family="Arial, sans-serif" font-size="100" font-weight="700" fill="${COLORS.white}">OOH</text><text x="1040" y="380" font-family="Arial, sans-serif" font-size="43" font-weight="700" letter-spacing="5" fill="${COLORS.green}">COMPLIANCE</text><text x="1040" y="445" font-family="Arial, sans-serif" font-size="43" font-weight="700" letter-spacing="5" fill="${COLORS.green}">CYCLE</text><line x1="1040" y1="500" x2="1470" y2="500" stroke="${COLORS.green}" stroke-width="3"/>${brandLogo(logo, 1050, 690, 330, 105)}<text x="1040" y="845" font-family="Arial, sans-serif" font-size="17" letter-spacing="3" fill="${COLORS.white}">ACCURATE, VALID &amp; EFFICIENT</text>`);
+	const photo = photos[0]
+		? `<image href="${photos[0]}" x="1120" y="505" width="400" height="285" preserveAspectRatio="xMidYMid slice"/>`
+		: `<rect x="1120" y="505" width="400" height="285" fill="#E7E6E6"/>`;
+	return svgDocument(`<rect width="1600" height="900" fill="${COLORS.white}"/><rect x="48" y="0" width="20" height="840" fill="${COLORS.navy}"/>${brandLogo(logo, 105, 50, 380, 180)}<text x="760" y="110" font-family="Century Gothic, Arial, sans-serif" font-size="27" font-weight="700" fill="${COLORS.red}">COMPANY: ${escapeXml(advertiser)}</text><text x="760" y="160" font-family="Century Gothic, Arial, sans-serif" font-size="27" font-weight="700" fill="${COLORS.red}">BRAND: ${escapeXml(brand)}</text><text x="760" y="210" font-family="Century Gothic, Arial, sans-serif" font-size="27" font-weight="700" fill="${COLORS.red}">COMPLIANCE CYCLE: ${escapeXml(period)}</text><text x="100" y="410" font-family="Century Gothic, Arial, sans-serif" font-size="56" font-weight="700" fill="${COLORS.red}">OOH COMPLIANCE REPORT</text><rect x="95" y="505" width="310" height="285" rx="28" fill="${COLORS.navy}"/><rect x="425" y="505" width="310" height="285" rx="28" fill="${COLORS.red}"/><rect x="755" y="505" width="340" height="285" rx="28" fill="${COLORS.green}"/>${photo}<line x1="95" y1="820" x2="1520" y2="820" stroke="${COLORS.navy}" stroke-width="3"/><text x="95" y="860" font-family="Century Gothic, Arial, sans-serif" font-size="18" fill="${COLORS.muted}">ACCURATE, VALID &amp; EFFICIENT</text>`);
 }
+
 function dashboardSlide(reports: Report[], logo?: string) {
 	const total = reports.length;
 	const compliant = reports.filter(isCompliant).length;
@@ -223,49 +238,48 @@ function dashboardSlide(reports: Report[], logo?: string) {
 			.slice(0, limit)
 			.map(([label, value], index) => {
 				const top = y + index * 62;
-				return `<text x="${x}" y="${top}" font-family="Arial, sans-serif" font-size="19" fill="${COLORS.ink}">${escapeXml(label.slice(0, 25))}</text><rect x="${x}" y="${top + 12}" width="${Math.max(10, width * value / Math.max(...values.values(), 1))}" height="18" rx="9" fill="${index === 0 ? COLORS.green : COLORS.ink}"/><text x="${x + width + 18}" y="${top + 27}" font-family="Arial, sans-serif" font-size="17" fill="${COLORS.muted}">${value}</text>`;
+				return `<text x="${x}" y="${top}" font-family="Century Gothic, Arial, sans-serif" font-size="17" fill="${COLORS.ink}">${escapeXml(label.slice(0, 25))}</text><rect x="${x}" y="${top + 12}" width="${Math.max(10, width * value / Math.max(...values.values(), 1))}" height="18" rx="9" fill="${index % 2 ? COLORS.navy : COLORS.green}"/><text x="${x + width + 18}" y="${top + 27}" font-family="Century Gothic, Arial, sans-serif" font-size="16" fill="${COLORS.muted}">${value}</text>`;
 			})
 			.join("");
-	return svgDocument(`<rect width="1600" height="900" fill="${COLORS.cream}"/><rect width="1600" height="145" fill="${COLORS.ink}"/>${brandLogo(logo, 80, 25, 230, 92)}<text x="360" y="94" font-family="Arial, sans-serif" font-size="40" font-weight="700" fill="${COLORS.white}">Performance Summary Dashboard</text><rect x="80" y="205" width="440" height="220" rx="18" fill="${COLORS.white}"/><text x="120" y="263" font-family="Arial, sans-serif" font-size="22" fill="${COLORS.muted}">TOTAL SITES AUDITED</text><text x="120" y="380" font-family="Arial, sans-serif" font-size="88" font-weight="700" fill="${COLORS.ink}">${total}</text><rect x="580" y="205" width="440" height="220" rx="18" fill="${COLORS.white}"/><text x="620" y="263" font-family="Arial, sans-serif" font-size="22" fill="${COLORS.muted}">COMPLIANCE</text><text x="620" y="380" font-family="Arial, sans-serif" font-size="88" font-weight="700" fill="${COLORS.green}">${compliance}%</text><text x="1120" y="253" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="${COLORS.ink}">FORMAT USAGE</text>${bars(formats, 1120, 300, 300, 7)}<rect x="80" y="485" width="690" height="335" rx="18" fill="${COLORS.white}"/><text x="120" y="545" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="${COLORS.ink}">Distribution by City</text>${bars(cities, 120, 600, 530, 4)}<rect x="820" y="485" width="700" height="335" rx="18" fill="${COLORS.white}"/><text x="865" y="545" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="${COLORS.ink}">Board Condition</text>${bars(new Map([["Compliant", compliant], ["Needs attention", Math.max(0, total - compliant)]]), 865, 615, 520, 3)}<text x="85" y="862" font-family="Arial, sans-serif" font-size="18" fill="${COLORS.muted}">Compliant sites have both Poster and Structure marked OK.</text>`);
+	return svgDocument(`<rect width="1600" height="900" fill="${COLORS.white}"/><text x="800" y="95" text-anchor="middle" font-family="Century Gothic, Arial, sans-serif" font-size="42" font-weight="700" fill="${COLORS.navy}">Performance Summary Dashboard</text><line x1="80" y1="130" x2="1520" y2="130" stroke="${COLORS.red}" stroke-width="4"/><rect x="80" y="180" width="400" height="250" rx="24" fill="${COLORS.navy}"/><text x="125" y="245" font-family="Century Gothic, Arial, sans-serif" font-size="22" font-weight="700" fill="${COLORS.white}">TOTAL SITES AUDITED</text><text x="125" y="375" font-family="Century Gothic, Arial, sans-serif" font-size="100" fill="${COLORS.white}">${total}</text><rect x="520" y="180" width="400" height="250" rx="24" fill="${COLORS.green}"/><text x="565" y="245" font-family="Century Gothic, Arial, sans-serif" font-size="22" font-weight="700" fill="${COLORS.white}">COMPLIANCE</text><circle cx="720" cy="335" r="70" fill="none" stroke="${COLORS.white}" stroke-width="16"/><text x="720" y="350" text-anchor="middle" font-family="Century Gothic, Arial, sans-serif" font-size="44" font-weight="700" fill="${COLORS.white}">${compliance}%</text><rect x="960" y="180" width="560" height="250" rx="24" fill="#F5F5F5"/><text x="1000" y="225" font-family="Century Gothic, Arial, sans-serif" font-size="24" font-weight="700" fill="${COLORS.ink}">FORMAT USAGE</text>${bars(formats, 1000, 275, 430, 3)}<rect x="80" y="475" width="700" height="315" rx="24" fill="#F5F5F5"/><text x="120" y="530" font-family="Century Gothic, Arial, sans-serif" font-size="24" font-weight="700" fill="${COLORS.ink}">Distribution By City</text>${bars(cities, 120, 580, 530, 3)}<rect x="820" y="475" width="700" height="315" rx="24" fill="#F5F5F5"/><text x="860" y="530" font-family="Century Gothic, Arial, sans-serif" font-size="24" font-weight="700" fill="${COLORS.ink}">Condition Of Boards</text>${bars(new Map([["Compliant", compliant], ["Needs attention", Math.max(0, total - compliant)]]), 860, 590, 530, 3)}${brandLogo(logo, 75, 808, 170, 70)}<text x="310" y="860" font-family="Century Gothic, Arial, sans-serif" font-size="16" fill="${COLORS.muted}">A total of ${total} sites spread across ${cities.size} cities were audited.</text>`);
 }
 
-function sectionSlide(reportCount: number, logo?: string) {
-	return svgDocument(`<rect width="1600" height="900" fill="${COLORS.ink}"/><rect x="90" y="90" width="1420" height="720" fill="none" stroke="${COLORS.green}" stroke-width="3"/><text x="190" y="320" font-family="Arial, sans-serif" font-size="24" letter-spacing="8" fill="${COLORS.green}">CAMPAIGN COMPLIANCE</text><text x="190" y="430" font-family="Arial, sans-serif" font-size="68" font-weight="700" fill="${COLORS.white}">Site By Site Report</text><line x1="190" y1="500" x2="520" y2="500" stroke="${COLORS.green}" stroke-width="8"/><text x="190" y="590" font-family="Arial, sans-serif" font-size="28" fill="${COLORS.white}">${reportCount} sites reviewed</text>${brandLogo(logo, 1170, 675, 250, 90)}`);
+function sectionSlide(reportCount: number, brand: string, photo: string | undefined, logo?: string) {
+	const image = photo
+		? `<image href="${photo}" x="930" y="130" width="550" height="610" preserveAspectRatio="xMidYMid meet"/>`
+		: `<rect x="930" y="130" width="550" height="610" fill="#E7E6E6"/>`;
+	return svgDocument(`<rect width="1600" height="900" fill="${COLORS.white}"/><rect width="28" height="900" fill="${COLORS.navy}"/><text x="145" y="345" font-family="Garamond, Georgia, serif" font-size="64" font-weight="700" fill="${COLORS.ink}">${escapeXml(brand)}</text><text x="145" y="425" font-family="Century Gothic, Arial, sans-serif" font-size="42" fill="${COLORS.red}">Site By Site Report</text><text x="145" y="500" font-family="Century Gothic, Arial, sans-serif" font-size="24" fill="${COLORS.ink}">${reportCount} sites reviewed</text><line x1="145" y1="545" x2="485" y2="545" stroke="${COLORS.green}" stroke-width="8"/>${image}${brandLogo(logo, 70, 805, 170, 70)}`);
 }
 
-function detailSlide(report: Report, index: number, total: number, images: Array<string | undefined>, pageNumber: number, pageCount: number, logo?: string) {
+function detailSlide(report: Report, index: number, total: number, images: Array<string | undefined>, photoStart: number, pageNumber: number, pageCount: number, logo?: string) {
 	const address = report.address || report.siteName || report.siteCode || `Site ${index + 1}`;
-	const info: Array<[string, unknown]> = [
+	const values: Array<[string, unknown]> = [
 		["City", report.city], ["Brand", typeof report.brand === "object" ? report.brand?.name : report.brand],
 		["Board Type", report.boardType], ["Media Owner", report.mediaOwner],
-		["Board Structure", report.Structure?.name ?? report.structure], ["Poster", report.Poster?.name ?? report.poster],
-		["Illumination", report.Illumination?.name ?? report.illumination], ["Side of Traffic", report.Side?.name ?? report.side],
-		["BSV", report.bsv], ["Date Captured", report.dateCaptured ? new Date(report.dateCaptured).toLocaleString("en-GB") : "-"],
+		["Board Structure", report.Structure?.name ?? report.structure], ["Theme", report.theme],
+		["Condition of Board", report.Poster?.name ?? report.poster],
+		["Traffic Flow", report.trafficFlow ?? report.bsv],
+		["Angle of Vision", report.angleOfVision ?? report.Side?.name ?? report.side],
+		["Comment", report.comment ?? report.message],
 	];
-	const fields = info.map(([label, value], fieldIndex) => {
-		const col = fieldIndex % 2;
-		const row = Math.floor(fieldIndex / 2);
-		return field(String(label), value, 88 + col * 300, 300 + row * 88, 275);
+	const table = (items: Array<[string, unknown]>, x: number) => items.map(([label, value], row) => {
+		const y = 635 + row * 35;
+		return `<rect x="${x}" y="${y}" width="700" height="34" fill="${row % 2 ? "#F5F5F5" : COLORS.white}" stroke="#D6D6D6" stroke-width="1"/><rect x="${x}" y="${y}" width="220" height="34" fill="${COLORS.navy}"/><text x="${x + 12}" y="${y + 23}" font-family="Century Gothic, Arial, sans-serif" font-size="14" font-weight="700" fill="${COLORS.white}">${escapeXml(label)}</text>${textBlock(value ?? "-", x + 235, y + 23, 50, 15, COLORS.ink)}`;
 	}).join("");
-	const compliant = isCompliant(report);
-	const photoCount = images.length;
-	const columns = photoCount <= 2 ? 1 : photoCount <= 4 ? 2 : 3;
-	const rows = Math.max(1, Math.ceil(photoCount / columns));
-	const gap = 12;
-	const slotWidth = (735 - (columns - 1) * gap) / columns;
-	const slotHeight = (630 - (rows - 1) * gap) / rows;
-	const photoMarkup = photoCount
-		? images.map((image, imageIndex) => {
-			const x = 770 + (imageIndex % columns) * (slotWidth + gap);
-			const y = 190 + Math.floor(imageIndex / columns) * (slotHeight + gap);
-			const content = image
-				? `<image href="${image}" x="${x + 5}" y="${y + 5}" width="${slotWidth - 10}" height="${slotHeight - 10}" preserveAspectRatio="xMidYMid meet"/>`
-				: `<text x="${x + slotWidth / 2}" y="${y + slotHeight / 2}" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="${COLORS.muted}">Photo unavailable</text>`;
-			return `<rect x="${x}" y="${y}" width="${slotWidth}" height="${slotHeight}" fill="${COLORS.white}"/>${content}<rect x="${x}" y="${y}" width="${slotWidth}" height="${slotHeight}" fill="none" stroke="${COLORS.green}" stroke-width="2"/>`;
-		}).join("")
-		: `<rect x="770" y="190" width="735" height="630" fill="#DED9D1"/><text x="1137" y="510" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="${COLORS.muted}">No site photos available</text>`;
-	const statusBadge = `<rect x="455" y="218" width="235" height="43" rx="20" fill="${compliant ? COLORS.green : COLORS.ink}"/><text x="572" y="247" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="${COLORS.white}">${compliant ? "COMPLIANT" : "NEEDS ATTENTION"}</text>`;
-	return svgDocument(`<rect width="1600" height="900" fill="${COLORS.cream}"/><rect width="1600" height="155" fill="${COLORS.ink}"/><rect width="20" height="155" fill="${COLORS.green}"/>${brandLogo(logo, 60, 23, 190, 92)}<text x="300" y="60" font-family="Arial, sans-serif" font-size="19" letter-spacing="3" fill="${COLORS.green}">SITE ${String(index + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}</text>${textBlock(address, 300, 112, 68, 32, COLORS.white, true)}<rect x="65" y="190" width="655" height="630" rx="18" fill="${COLORS.white}"/><text x="88" y="250" font-family="Arial, sans-serif" font-size="18" letter-spacing="2" fill="${COLORS.green}">SITE DETAILS</text>${statusBadge}<text x="88" y="280" font-family="Arial, sans-serif" font-size="19" fill="${COLORS.muted}">Code: ${escapeXml(report.siteCode || "-")}</text>${fields}<line x1="88" y1="742" x2="690" y2="742" stroke="${COLORS.green}" stroke-width="2"/>${textBlock(`Comment: ${report.comment || report.message || "-"}`, 88, 780, 70, 20, COLORS.ink)}${photoMarkup}<line x1="65" y1="852" x2="1505" y2="852" stroke="${COLORS.green}" stroke-width="2"/><text x="65" y="881" font-family="Arial, sans-serif" font-size="15" fill="${COLORS.muted}">ACCURATE, VALID &amp; EFFICIENT</text>${brandLogo(logo, 735, 850, 130, 45)}<text x="1505" y="881" text-anchor="end" font-family="Arial, sans-serif" font-size="15" fill="${COLORS.muted}">${pageNumber} / ${pageCount}</text>`);
+	const imageSlots = images.slice(0, 2).map((image, slot) => {
+		const x = slot === 0 ? 80 : 820;
+		const markup = image
+			? `<image href="${image}" x="${x + 5}" y="135" width="690" height="470" preserveAspectRatio="xMidYMid meet"/>`
+			: `<text x="${x + 350}" y="370" text-anchor="middle" font-family="Century Gothic, Arial, sans-serif" font-size="20" fill="${COLORS.muted}">Photo unavailable</text>`;
+		return `<rect x="${x}" y="130" width="700" height="480" fill="#F3F3F3" stroke="#D6D6D6" stroke-width="2"/>${markup}`;
+	}).join("");
+	const emptySlots = Array.from({ length: Math.max(0, 2 - images.length) }, (_, offset) => {
+		const slot = images.length + offset;
+		const x = slot === 0 ? 80 : 820;
+		return `<rect x="${x}" y="130" width="700" height="480" fill="#F3F3F3" stroke="#D6D6D6" stroke-width="2"/><text x="${x + 350}" y="370" text-anchor="middle" font-family="Century Gothic, Arial, sans-serif" font-size="20" fill="${COLORS.muted}">${photoStart ? "No additional photo" : "No photo available"}</text>`;
+	}).join("");
+	const details = table(values.slice(0, 5), 80) + table(values.slice(5), 820);
+	return svgDocument(`<rect width="1600" height="900" fill="${COLORS.white}"/>${textBlock(address, 80, 83, 92, 33, COLORS.ink, true)}<text x="1450" y="82" text-anchor="end" font-family="Century Gothic, Arial, sans-serif" font-size="17" fill="${COLORS.red}">SITE ${String(index + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}${photoStart ? ` - PHOTOS ${photoStart + 1}-${photoStart + images.length}` : ""}</text>${imageSlots}${emptySlots}${details}<line x1="80" y1="825" x2="1520" y2="825" stroke="${COLORS.navy}" stroke-width="2"/><text x="80" y="875" font-family="Century Gothic, Arial, sans-serif" font-size="16" fill="${COLORS.muted}">ACCURATE, VALID &amp; EFFICIENT</text>${brandLogo(logo, 720, 830, 160, 55)}<text x="1520" y="875" text-anchor="end" font-family="Century Gothic, Arial, sans-serif" font-size="16" fill="${COLORS.muted}">${pageNumber} / ${pageCount}</text>`);
 }
 
 function closingSlide(logo?: string) {
@@ -298,22 +312,37 @@ async function svgToJpeg(svg: string): Promise<Uint8Array> {
 
 async function renderSlides(reports: Report[], campaignIdentifier: string | undefined, advertiserName: string | undefined, token?: string) {
 	const logo = await loadLocalDataUrl("/mediatrak-logo.jpeg");
+	const reportPhotoUrls = reports.map(photoUrls);
+	const coverPhotos = await Promise.all((reportPhotoUrls[0] ?? []).slice(0, 2).map((url) => loadDataUrl(url, token)));
 	const rendered: SlideImage[] = [];
-	for (const slide of [coverSlide(reports, campaignIdentifier, advertiserName, logo), dashboardSlide(reports, logo), sectionSlide(reports.length, logo)]) {
+	const brand = getBrandName(reports);
+	const firstPhoto = coverPhotos[0];
+	for (const slide of [
+		coverSlide(reports, campaignIdentifier, advertiserName, coverPhotos, logo),
+		dashboardSlide(reports, logo),
+		sectionSlide(reports.length, brand, firstPhoto, logo),
+	]) {
 		rendered.push({ data: await svgToJpeg(slide), width: WIDTH, height: HEIGHT });
 	}
-	const reportPhotoUrls = reports.map(photoUrls);
-	const pageCount = 4 + reports.length;
+	const detailPageCount = reportPhotoUrls.reduce((count, urls) => count + Math.max(1, Math.ceil(urls.length / 2)), 0);
+	const pageCount = 4 + detailPageCount;
 	let pageNumber = 4;
 	for (const [index, report] of reports.entries()) {
 		const urls = reportPhotoUrls[index];
-		const photos = await Promise.all(urls.map((url) => loadDataUrl(url, token)));
-		rendered.push({
-			data: await svgToJpeg(detailSlide(report, index, reports.length, photos, pageNumber, pageCount, logo)),
-			width: WIDTH,
-			height: HEIGHT,
-		});
-		pageNumber += 1;
+		const detailPagesForSite = Math.max(1, Math.ceil(urls.length / 2));
+		for (let pageIndex = 0; pageIndex < detailPagesForSite; pageIndex += 1) {
+			const photoStart = pageIndex * 2;
+			const pageUrls = urls.slice(photoStart, photoStart + 2);
+			const photos = index === 0 && pageIndex === 0
+				? coverPhotos
+				: await Promise.all(pageUrls.map((url) => loadDataUrl(url, token)));
+			rendered.push({
+				data: await svgToJpeg(detailSlide(report, index, reports.length, photos, photoStart, pageNumber, pageCount, logo)),
+				width: WIDTH,
+				height: HEIGHT,
+			});
+			pageNumber += 1;
+		}
 	}
 	rendered.push({ data: await svgToJpeg(closingSlide(logo)), width: WIDTH, height: HEIGHT });
 	return rendered;
