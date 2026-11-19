@@ -1,7 +1,7 @@
 import JSZip from "jszip";
 
 type Report = Record<string, any>;
-type SlideImage = { data: Uint8Array; width: number; height: number };
+type SlideImage = { data: Uint8Array; width: number; height: number; svg: string };
 
 const WIDTH = 1600;
 const HEIGHT = 900;
@@ -241,7 +241,7 @@ function dashboardSlide(reports: Report[], logo?: string) {
 				return `<text x="${x}" y="${top}" font-family="Century Gothic, Arial, sans-serif" font-size="17" fill="${COLORS.ink}">${escapeXml(label.slice(0, 25))}</text><rect x="${x}" y="${top + 12}" width="${Math.max(10, width * value / Math.max(...values.values(), 1))}" height="18" rx="9" fill="${index % 2 ? COLORS.navy : COLORS.green}"/><text x="${x + width + 18}" y="${top + 27}" font-family="Century Gothic, Arial, sans-serif" font-size="16" fill="${COLORS.muted}">${value}</text>`;
 			})
 			.join("");
-	return svgDocument(`<rect width="1600" height="900" fill="${COLORS.white}"/><text x="800" y="95" text-anchor="middle" font-family="Century Gothic, Arial, sans-serif" font-size="42" font-weight="700" fill="${COLORS.navy}">Performance Summary Dashboard</text><line x1="80" y1="130" x2="1520" y2="130" stroke="${COLORS.red}" stroke-width="4"/><rect x="80" y="180" width="400" height="250" rx="24" fill="${COLORS.navy}"/><text x="125" y="245" font-family="Century Gothic, Arial, sans-serif" font-size="22" font-weight="700" fill="${COLORS.white}">TOTAL SITES AUDITED</text><text x="125" y="375" font-family="Century Gothic, Arial, sans-serif" font-size="100" fill="${COLORS.white}">${total}</text><rect x="520" y="180" width="400" height="250" rx="24" fill="${COLORS.green}"/><text x="565" y="245" font-family="Century Gothic, Arial, sans-serif" font-size="22" font-weight="700" fill="${COLORS.white}">COMPLIANCE</text><circle cx="720" cy="335" r="70" fill="none" stroke="${COLORS.white}" stroke-width="16"/><text x="720" y="350" text-anchor="middle" font-family="Century Gothic, Arial, sans-serif" font-size="44" font-weight="700" fill="${COLORS.white}">${compliance}%</text><rect x="960" y="180" width="560" height="250" rx="24" fill="#F5F5F5"/><text x="1000" y="225" font-family="Century Gothic, Arial, sans-serif" font-size="24" font-weight="700" fill="${COLORS.ink}">FORMAT USAGE</text>${bars(formats, 1000, 275, 430, 3)}<rect x="80" y="475" width="700" height="315" rx="24" fill="#F5F5F5"/><text x="120" y="530" font-family="Century Gothic, Arial, sans-serif" font-size="24" font-weight="700" fill="${COLORS.ink}">Distribution By City</text>${bars(cities, 120, 580, 530, 3)}<rect x="820" y="475" width="700" height="315" rx="24" fill="#F5F5F5"/><text x="860" y="530" font-family="Century Gothic, Arial, sans-serif" font-size="24" font-weight="700" fill="${COLORS.ink}">Condition Of Boards</text>${bars(new Map([["Compliant", compliant], ["Needs attention", Math.max(0, total - compliant)]]), 860, 590, 530, 3)}${brandLogo(logo, 75, 808, 170, 70)}<text x="310" y="860" font-family="Century Gothic, Arial, sans-serif" font-size="16" fill="${COLORS.muted}">A total of ${total} sites spread across ${cities.size} cities were audited.</text>`);
+	return svgDocument(`<rect width="1600" height="900" fill="${COLORS.white}"/><text x="800" y="95" text-anchor="middle" font-family="Century Gothic, Arial, sans-serif" font-size="42" font-weight="700" fill="${COLORS.navy}">Performance Summary Dashboard</text><line x1="80" y1="130" x2="1520" y2="130" stroke="${COLORS.red}" stroke-width="4"/><rect x="80" y="180" width="400" height="250" rx="24" fill="${COLORS.navy}"/><text x="125" y="245" font-family="Century Gothic, Arial, sans-serif" font-size="22" font-weight="700" fill="${COLORS.white}">TOTAL SITES AUDITED</text><text x="125" y="375" font-family="Century Gothic, Arial, sans-serif" font-size="100" fill="${COLORS.white}">${total}</text><rect x="520" y="180" width="400" height="250" rx="24" fill="${COLORS.green}"/><text x="565" y="245" font-family="Century Gothic, Arial, sans-serif" font-size="22" font-weight="700" fill="${COLORS.white}">COMPLIANCE</text><circle cx="720" cy="335" r="70" fill="none" stroke="${COLORS.white}" stroke-width="16"/><text x="720" y="350" text-anchor="middle" font-family="Century Gothic, Arial, sans-serif" font-size="44" font-weight="700" fill="${COLORS.white}">${compliance}%</text><rect x="960" y="180" width="560" height="250" rx="24" fill="#F5F5F5"/><text x="1000" y="225" font-family="Century Gothic, Arial, sans-serif" font-size="24" font-weight="700" fill="${COLORS.ink}">FORMAT USAGE</text>${bars(formats, 1000, 275, 430, 3)}<rect x="80" y="475" width="700" height="315" rx="24" fill="#F5F5F5"/><text x="120" y="530" font-family="Century Gothic, Arial, sans-serif" font-size="24" font-weight="700" fill="${COLORS.ink}">Distribution By City</text>${bars(cities, 120, 580, 530, 3)}<rect x="820" y="475" width="700" height="315" rx="24" fill="#F5F5F5"/><text x="860" y="530" font-family="Century Gothic, Arial, sans-serif" font-size="24" font-weight="700" fill="${COLORS.ink}">Condition of Poster</text>${bars(new Map([["Compliant", compliant], ["Needs attention", Math.max(0, total - compliant)]]), 860, 590, 530, 3)}${brandLogo(logo, 75, 808, 170, 70)}<text x="310" y="860" font-family="Century Gothic, Arial, sans-serif" font-size="16" fill="${COLORS.muted}">A total of ${total} sites spread across ${cities.size} cities were audited.</text>`);
 }
 
 function sectionSlide(reportCount: number, brand: string, photo: string | undefined, logo?: string) {
@@ -257,7 +257,7 @@ function detailSlide(report: Report, index: number, total: number, images: Array
 		["City", report.city], ["Brand", typeof report.brand === "object" ? report.brand?.name : report.brand],
 		["Board Type", report.boardType], ["Media Owner", report.mediaOwner],
 		["Board Structure", report.Structure?.name ?? report.structure], ["Theme", report.theme],
-		["Condition of Board", report.Poster?.name ?? report.poster],
+		["Condition of Poster", report.Poster?.name ?? report.poster],
 		["Traffic Flow", report.trafficFlow ?? report.bsv],
 		["Angle of Vision", report.angleOfVision ?? report.Side?.name ?? report.side],
 		["Comment", report.comment ?? report.message],
@@ -279,7 +279,9 @@ function detailSlide(report: Report, index: number, total: number, images: Array
 		return `<rect x="${x}" y="130" width="700" height="480" fill="#F3F3F3" stroke="#D6D6D6" stroke-width="2"/><text x="${x + 350}" y="370" text-anchor="middle" font-family="Century Gothic, Arial, sans-serif" font-size="20" fill="${COLORS.muted}">${photoStart ? "No additional photo" : "No photo available"}</text>`;
 	}).join("");
 	const details = table(values.slice(0, 5), 80) + table(values.slice(5), 820);
-	return svgDocument(`<rect width="1600" height="900" fill="${COLORS.white}"/>${textBlock(address, 80, 83, 92, 33, COLORS.ink, true)}<text x="1450" y="82" text-anchor="end" font-family="Century Gothic, Arial, sans-serif" font-size="17" fill="${COLORS.red}">SITE ${String(index + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}${photoStart ? ` - PHOTOS ${photoStart + 1}-${photoStart + images.length}` : ""}</text>${imageSlots}${emptySlots}${details}<line x1="80" y1="825" x2="1520" y2="825" stroke="${COLORS.navy}" stroke-width="2"/><text x="80" y="875" font-family="Century Gothic, Arial, sans-serif" font-size="16" fill="${COLORS.muted}">ACCURATE, VALID &amp; EFFICIENT</text>${brandLogo(logo, 720, 830, 160, 55)}<text x="1520" y="875" text-anchor="end" font-family="Century Gothic, Arial, sans-serif" font-size="16" fill="${COLORS.muted}">${pageNumber} / ${pageCount}</text>`);
+	const status = isCompliant(report) ? "COMPLIANT" : "NEEDS ATTENTION";
+	const statusColor = isCompliant(report) ? COLORS.green : COLORS.red;
+	return svgDocument(`<rect width="1600" height="900" fill="${COLORS.white}"/>${textBlock(address, 80, 83, 92, 33, COLORS.ink, true)}<rect x="1190" y="95" width="260" height="28" rx="14" fill="${statusColor}"/><text x="1320" y="115" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="${COLORS.white}">${status}</text><text x="1450" y="82" text-anchor="end" font-family="Century Gothic, Arial, sans-serif" font-size="17" fill="${COLORS.red}">SITE ${String(index + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}${photoStart ? ` - PHOTOS ${photoStart + 1}-${photoStart + images.length}` : ""}</text>${imageSlots}${emptySlots}${details}<line x1="80" y1="825" x2="1520" y2="825" stroke="${COLORS.navy}" stroke-width="2"/><text x="80" y="875" font-family="Century Gothic, Arial, sans-serif" font-size="16" fill="${COLORS.muted}">ACCURATE, VALID &amp; EFFICIENT</text>${brandLogo(logo, 720, 830, 160, 55)}<text x="1520" y="875" text-anchor="end" font-family="Century Gothic, Arial, sans-serif" font-size="16" fill="${COLORS.muted}">${pageNumber} / ${pageCount}</text>`);
 }
 
 function closingSlide(logo?: string) {
@@ -310,6 +312,10 @@ async function svgToJpeg(svg: string): Promise<Uint8Array> {
 	}
 }
 
+async function makeSlide(svg: string): Promise<SlideImage> {
+	return { data: await svgToJpeg(svg), width: WIDTH, height: HEIGHT, svg };
+}
+
 async function renderSlides(reports: Report[], campaignIdentifier: string | undefined, advertiserName: string | undefined, token?: string) {
 	const logo = await loadLocalDataUrl("/mediatrak-logo.jpeg");
 	const reportPhotoUrls = reports.map(photoUrls);
@@ -322,7 +328,7 @@ async function renderSlides(reports: Report[], campaignIdentifier: string | unde
 		dashboardSlide(reports, logo),
 		sectionSlide(reports.length, brand, firstPhoto, logo),
 	]) {
-		rendered.push({ data: await svgToJpeg(slide), width: WIDTH, height: HEIGHT });
+		rendered.push(await makeSlide(slide));
 	}
 	const detailPageCount = reportPhotoUrls.reduce((count, urls) => count + Math.max(1, Math.ceil(urls.length / 2)), 0);
 	const pageCount = 4 + detailPageCount;
@@ -336,15 +342,11 @@ async function renderSlides(reports: Report[], campaignIdentifier: string | unde
 			const photos = index === 0 && pageIndex === 0
 				? coverPhotos
 				: await Promise.all(pageUrls.map((url) => loadDataUrl(url, token)));
-			rendered.push({
-				data: await svgToJpeg(detailSlide(report, index, reports.length, photos, photoStart, pageNumber, pageCount, logo)),
-				width: WIDTH,
-				height: HEIGHT,
-			});
+			rendered.push(await makeSlide(detailSlide(report, index, reports.length, photos, photoStart, pageNumber, pageCount, logo)));
 			pageNumber += 1;
 		}
 	}
-	rendered.push({ data: await svgToJpeg(closingSlide(logo)), width: WIDTH, height: HEIGHT });
+	rendered.push(await makeSlide(closingSlide(logo)));
 	return rendered;
 }
 
@@ -397,16 +399,162 @@ function pdfDocument(slides: SlideImage[]) {
 	return joinBytes([header, ...objects, encoder.encode(xref.join("") + trailer)]);
 }
 
+function numberAttr(element: Element, name: string, fallback = 0) {
+	const value = Number.parseFloat(element.getAttribute(name) ?? "");
+	return Number.isFinite(value) ? value : fallback;
+}
+
+function pxToXEmu(value: number) {
+	return Math.round(value * EMU_WIDTH / WIDTH);
+}
+
+function pxToYEmu(value: number) {
+	return Math.round(value * EMU_HEIGHT / HEIGHT);
+}
+
+function pptColor(value: string | null, fallback = "FFFFFF") {
+	if (!value || value === "none" || value === "transparent") return undefined;
+	if (value.startsWith("#")) {
+		const raw = value.slice(1);
+		return raw.length === 3 ? raw.split("").map((part) => part + part).join("").toUpperCase() : raw.toUpperCase();
+	}
+	const named: Record<string, string> = { white: "FFFFFF", black: "000000", red: "FF0000", gray: "808080", grey: "808080" };
+	return named[value.toLowerCase()] ?? fallback;
+}
+
+function pptFill(color: string | null) {
+	const parsed = pptColor(color);
+	return parsed ? `<a:solidFill><a:srgbClr val="${parsed}"/></a:solidFill>` : "<a:noFill/>";
+}
+
+function pptLine(color: string | null, width: number) {
+	const parsed = pptColor(color);
+	return parsed
+		? `<a:ln w="${Math.max(1, Math.round(width * 9525))}"><a:solidFill><a:srgbClr val="${parsed}"/></a:solidFill></a:ln>`
+		: "<a:ln><a:noFill/></a:ln>";
+}
+
+function shapeXml(id: number, x: number, y: number, width: number, height: number, geometry: string, fill: string, line: string, name: string) {
+	return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${escapeXml(name)}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="${pxToXEmu(x)}" y="${pxToYEmu(y)}"/><a:ext cx="${Math.max(1, pxToXEmu(width))}" cy="${Math.max(1, pxToYEmu(height))}"/></a:xfrm><a:prstGeom prst="${geometry}"><a:avLst/></a:prstGeom>${fill}${line}</p:spPr></p:sp>`;
+}
+
+function textShapeXml(id: number, element: Element) {
+	const x = numberAttr(element, "x");
+	const baseline = numberAttr(element, "y");
+	const fontSize = numberAttr(element, "font-size", 18);
+	const anchor = element.getAttribute("text-anchor") ?? "start";
+	const width = anchor === "middle" ? Math.min(1200, WIDTH) : anchor === "end" ? Math.min(WIDTH, Math.max(300, x)) : Math.min(WIDTH - x, 900);
+	const left = anchor === "middle" ? Math.max(0, x - width / 2) : anchor === "end" ? Math.max(0, x - width) : x;
+	const children = Array.from(element.children).filter((child) => child.localName === "tspan");
+	const lines = children.length ? children.map((child) => child.textContent ?? "") : [element.textContent ?? ""];
+	const lineCount = Math.max(1, lines.length);
+	const top = Math.max(0, baseline - fontSize);
+	const height = Math.min(HEIGHT - top, Math.max(fontSize * 1.5, lineCount * fontSize * 1.35));
+	const fontFamily = (element.getAttribute("font-family") ?? "Arial").split(",")[0].replace(/["']/g, "").trim() || "Arial";
+	const color = pptColor(element.getAttribute("fill"), "000000") ?? "000000";
+	const bold = Number(element.getAttribute("font-weight")) >= 600 || element.getAttribute("font-weight") === "bold";
+	const italic = element.getAttribute("font-style") === "italic";
+	const letterSpacing = numberAttr(element, "letter-spacing", 0);
+	const alignment = anchor === "middle" ? "ctr" : anchor === "end" ? "r" : "l";
+	const paragraphs = lines.map((line) => `<a:p><a:pPr algn="${alignment}" marL="0" indent="0"><a:lnSpc><a:spcPct val="100000"/></a:lnSpc></a:pPr><a:r><a:rPr lang="en-US" sz="${Math.round(fontSize * 75)}" b="${bold ? 1 : 0}" i="${italic ? 1 : 0}"${letterSpacing ? ` spc="${Math.round(letterSpacing * 75)}"` : ""}><a:solidFill><a:srgbClr val="${color}"/></a:solidFill><a:latin typeface="${escapeXml(fontFamily)}"/></a:rPr><a:t xml:space="preserve">${escapeXml(line)}</a:t></a:r><a:endParaRPr lang="en-US" sz="${Math.round(fontSize * 75)}"/></a:p>`).join("");
+	return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="Text ${id}"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="${pxToXEmu(left)}" y="${pxToYEmu(top)}"/><a:ext cx="${Math.max(1, pxToXEmu(width))}" cy="${Math.max(1, pxToYEmu(height))}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln></p:spPr><p:txBody><a:bodyPr wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" anchor="t"><a:noAutofit/></a:bodyPr><a:lstStyle/>${paragraphs}</p:txBody></p:sp>`;
+}
+
+async function jpegData(dataUrl: string) {
+	const image = new Image();
+	await new Promise<void>((resolve, reject) => {
+		image.onload = () => resolve();
+		image.onerror = () => reject(new Error("Unable to prepare an image for the editable PowerPoint report."));
+		image.src = dataUrl;
+	});
+	const canvas = document.createElement("canvas");
+	canvas.width = image.naturalWidth;
+	canvas.height = image.naturalHeight;
+	const context = canvas.getContext("2d");
+	if (!context) throw new Error("Your browser could not prepare a PowerPoint image.");
+	context.drawImage(image, 0, 0);
+	const blob = await new Promise<Blob>((resolve, reject) => {
+		canvas.toBlob((result) => result ? resolve(result) : reject(new Error("Unable to encode a PowerPoint image.")), "image/jpeg", 0.94);
+	});
+	return { data: new Uint8Array(await blob.arrayBuffer()), width: image.naturalWidth, height: image.naturalHeight };
+}
+
+function imageTransform(x: number, y: number, width: number, height: number, imageWidth: number, imageHeight: number, fit: string | null) {
+	const boxRatio = width / height;
+	const imageRatio = imageWidth / imageHeight;
+	if (fit === "xMidYMid slice") {
+		const crop = imageRatio > boxRatio
+			? { l: Math.round((1 - boxRatio / imageRatio) * 50000), r: Math.round((1 - boxRatio / imageRatio) * 50000) }
+			: { t: Math.round((1 - imageRatio / boxRatio) * 50000), b: Math.round((1 - imageRatio / boxRatio) * 50000) };
+		return { x, y, width, height, crop };
+	}
+	const scale = Math.min(width / imageWidth, height / imageHeight);
+	const fittedWidth = imageWidth * scale;
+	const fittedHeight = imageHeight * scale;
+	return { x: x + (width - fittedWidth) / 2, y: y + (height - fittedHeight) / 2, width: fittedWidth, height: fittedHeight };
+}
+
+async function slideDrawing(svg: string, slideNumber: number) {
+	const documentXml = new DOMParser().parseFromString(svg, "image/svg+xml");
+	if (documentXml.querySelector("parsererror")) throw new Error("The report slide could not be converted into editable PowerPoint elements.");
+	const drawing: string[] = [];
+	const relationships = [`<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>`];
+	const media: Array<{ path: string; data: Uint8Array }> = [];
+	let shapeId = 2;
+	let imageId = 0;
+	for (const element of Array.from(documentXml.documentElement.children)) {
+		const tag = element.localName;
+		const id = shapeId++;
+		if (tag === "rect") {
+			const x = numberAttr(element, "x");
+			const y = numberAttr(element, "y");
+			const width = numberAttr(element, "width");
+			const height = numberAttr(element, "height");
+			const radius = Math.max(numberAttr(element, "rx"), numberAttr(element, "ry"));
+			drawing.push(shapeXml(id, x, y, width, height, radius ? "roundRect" : "rect", pptFill(element.getAttribute("fill")), pptLine(element.getAttribute("stroke"), numberAttr(element, "stroke-width", 1)), `Shape ${id}`));
+		} else if (tag === "circle") {
+			const radius = numberAttr(element, "r");
+			drawing.push(shapeXml(id, numberAttr(element, "cx") - radius, numberAttr(element, "cy") - radius, radius * 2, radius * 2, "ellipse", pptFill(element.getAttribute("fill")), pptLine(element.getAttribute("stroke"), numberAttr(element, "stroke-width", 1)), `Circle ${id}`));
+		} else if (tag === "line") {
+			const x1 = numberAttr(element, "x1");
+			const y1 = numberAttr(element, "y1");
+			const x2 = numberAttr(element, "x2");
+			const y2 = numberAttr(element, "y2");
+			drawing.push(shapeXml(id, Math.min(x1, x2), Math.min(y1, y2), Math.max(1, Math.abs(x2 - x1)), Math.max(1, Math.abs(y2 - y1)), "line", "<a:noFill/>", pptLine(element.getAttribute("stroke"), numberAttr(element, "stroke-width", 1)), `Line ${id}`));
+		} else if (tag === "text") {
+			drawing.push(textShapeXml(id, element));
+		} else if (tag === "image") {
+			const source = element.getAttribute("href") ?? element.getAttributeNS("http://www.w3.org/1999/xlink", "href");
+			if (!source) continue;
+			const raster = await jpegData(source);
+			const mediaPath = `ppt/media/slide${slideNumber}_image${imageId + 1}.jpeg`;
+			media.push({ path: mediaPath, data: raster.data });
+			const relationshipId = `rId${imageId + 2}`;
+			relationships.push(`<Relationship Id="${relationshipId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/slide${slideNumber}_image${imageId + 1}.jpeg"/>`);
+			const x = numberAttr(element, "x");
+			const y = numberAttr(element, "y");
+			const width = numberAttr(element, "width");
+			const height = numberAttr(element, "height");
+			const box = imageTransform(x, y, width, height, raster.width, raster.height, element.getAttribute("preserveAspectRatio"));
+			const crop = box.crop ? `<a:srcRect l="${box.crop.l ?? 0}" r="${box.crop.r ?? 0}" t="${box.crop.t ?? 0}" b="${box.crop.b ?? 0}"/>` : "";
+			drawing.push(`<p:pic><p:nvPicPr><p:cNvPr id="${id}" name="Photo ${imageId + 1}" descr="Replaceable report photo"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="${relationshipId}"/>${crop}<a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="${pxToXEmu(box.x)}" y="${pxToYEmu(box.y)}"/><a:ext cx="${Math.max(1, pxToXEmu(box.width))}" cy="${Math.max(1, pxToYEmu(box.height))}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>`);
+			imageId += 1;
+		}
+	}
+	return { drawing: drawing.join(""), relationships: relationships.join(""), media };
+}
+
 function pptxContentTypes(slideCount: number) {
 	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpeg" ContentType="image/jpeg"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>${Array.from({ length: slideCount }, (_, i) => `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join("")}</Types>`;
 }
 
-function slideXml() {
-	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr><p:pic><p:nvPicPr><p:cNvPr id="2" name="Slide Image"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rId2"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${EMU_WIDTH}" cy="${EMU_HEIGHT}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
+function slideXml(drawing: string) {
+	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>${drawing}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
 }
 
 async function pptxDocument(slides: SlideImage[]) {
 	const zip = new JSZip();
+	const editableSlides = await Promise.all(slides.map((slide, index) => slideDrawing(slide.svg, index + 1)));
 	zip.file("[Content_Types].xml", pptxContentTypes(slides.length));
 	zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>`);
 	zip.file("docProps/core.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:creator>MediaTrak</dc:creator><cp:lastModifiedBy>MediaTrak</cp:lastModifiedBy><dcterms:created xsi:type="dcterms:W3CDTF">2026-01-01T00:00:00Z</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">2026-01-01T00:00:00Z</dcterms:modified></cp:coreProperties>`);
@@ -419,10 +567,10 @@ async function pptxDocument(slides: SlideImage[]) {
 	zip.file("ppt/slideLayouts/slideLayout1.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" type="blank" preserve="1"><p:cSld name="Blank"><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`);
 	zip.file("ppt/slideLayouts/_rels/slideLayout1.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/></Relationships>`);
 	zip.file("ppt/theme/theme1.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="MediaTrak"><a:themeElements><a:clrScheme name="MediaTrak"><a:dk1><a:srgbClr val="171717"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="008F43"/></a:dk2><a:lt2><a:srgbClr val="F5F8F6"/></a:lt2><a:accent1><a:srgbClr val="008F43"/></a:accent1><a:accent2><a:srgbClr val="171717"/></a:accent2><a:accent3><a:srgbClr val="686868"/></a:accent3><a:accent4><a:srgbClr val="008F43"/></a:accent4><a:accent5><a:srgbClr val="008F43"/></a:accent5><a:accent6><a:srgbClr val="171717"/></a:accent6><a:hlink><a:srgbClr val="008F43"/></a:hlink><a:folHlink><a:srgbClr val="171717"/></a:folHlink></a:clrScheme><a:fontScheme name="Arial"><a:majorFont><a:latin typeface="Arial"/><a:ea typeface="Arial"/><a:cs typeface="Arial"/></a:majorFont><a:minorFont><a:latin typeface="Arial"/><a:ea typeface="Arial"/><a:cs typeface="Arial"/></a:minorFont></a:fontScheme><a:fmtScheme name="MediaTrak"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln w="6350"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="12700"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="19050"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements><a:objectDefaults/><a:extraClrSchemeLst/></a:theme>`);
-	for (const [index, slide] of slides.entries()) {
-		zip.file(`ppt/slides/slide${index + 1}.xml`, slideXml());
-		zip.file(`ppt/slides/_rels/slide${index + 1}.xml.rels`, `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/slide${index + 1}.jpeg"/><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/></Relationships>`);
-		zip.file(`ppt/media/slide${index + 1}.jpeg`, slide.data);
+	for (const [index, slide] of editableSlides.entries()) {
+		zip.file(`ppt/slides/slide${index + 1}.xml`, slideXml(slide.drawing));
+		zip.file(`ppt/slides/_rels/slide${index + 1}.xml.rels`, `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${slide.relationships}</Relationships>`);
+		for (const media of slide.media) zip.file(media.path, media.data);
 	}
 	return await zip.generateAsync({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation", compression: "STORE" });
 }
