@@ -59,32 +59,37 @@ export default function CampaignsTable({
 				);
 				return normalizeCampaignPage(response.data);
 			};
-			const currentResult = await getPage(currentPage);
-			if (currentResult.hasPaginationMetadata || currentResult.data.length === 0) return currentResult;
-
-			let inferredPageSize = currentResult.pageSize as number | undefined;
-			let inferredTotalPages = 0;
+			const firstResult = await getPage(1);
+			const campaigns: Campaign[] = [];
+			let pageSize = Number(firstResult.pageSize) || CAMPAIGNS_PER_PAGE;
+			let totalPages = Number(firstResult.totalPages) || 0;
 			const seenPageSignatures = new Set<string>();
-			for (let page = 1; page <= 100; page++) {
-				const result = page === currentPage ? currentResult : await getPage(page);
+			for (let page = 1; page <= Math.min(totalPages || 100, 100); page++) {
+				const result = page === 1 ? firstResult : await getPage(page);
 				if (!result.data.length) break;
-				const pageSize = inferredPageSize ?? result.data.length;
-				inferredPageSize = pageSize;
+				pageSize = Number(result.pageSize) || pageSize;
 				const signature = result.data.map((campaign: Campaign) => campaign.id ?? campaign.campaignID ?? JSON.stringify(campaign)).join("|");
 				if (seenPageSignatures.has(signature)) break;
 				seenPageSignatures.add(signature);
-				inferredTotalPages = page;
-				if (result.hasPaginationMetadata) {
-					inferredTotalPages = result.totalPages;
-					inferredPageSize = result.pageSize ?? inferredPageSize;
+				campaigns.push(...result.data);
+				if (result.hasPaginationMetadata) totalPages = result.totalPages;
+				if (result.data.length < pageSize) {
+					totalPages = page;
 					break;
 				}
-				if (result.data.length < pageSize) break;
 			}
+			const capturedAt = (campaign: Campaign) => {
+				const value = campaign.uploadedAt ?? (campaign as any).createdAt ?? (campaign as any).date;
+				const timestamp = value ? new Date(value).getTime() : 0;
+				return Number.isFinite(timestamp) ? timestamp : 0;
+			};
+			campaigns.sort((a, b) => capturedAt(b) - capturedAt(a));
+			totalPages = Math.max(totalPages, Math.ceil(campaigns.length / pageSize));
 			return {
-				...currentResult,
-				pageSize: inferredPageSize,
-				totalPages: Math.max(inferredTotalPages, currentPage),
+				...firstResult,
+				data: campaigns.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+				pageSize,
+				totalPages,
 			};
 		},
 		gcTime: 0,

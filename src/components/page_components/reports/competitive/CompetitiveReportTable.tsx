@@ -45,6 +45,7 @@ function getReportTotalPages(data: any, rowCount: number, currentPage: number) {
 	}
 
 	const totalRecords =
+		data?.sortedTotalRecords ??
 		data?.pagination?.totalRecords ??
 		data?.pagination?.total ??
 		data?.totalRecords ??
@@ -110,8 +111,27 @@ export default function CompetitiveReportTable() {
 	const { data, isLoading, isFetching } = useQuery({
 		queryKey: ["advertisers", currentPage, search, params.advertiserId],
 		queryFn: async () => {
-			const responseData = await fetchReportPage(currentPage);
-			const reports = getReportRows(responseData);
+			const firstPage = await fetchReportPage(1);
+			const allReports: CompetitiveUpload[] = [];
+			const seenPageSignatures = new Set<string>();
+			for (let page = 1; page <= 1000; page += 1) {
+				const pageData = page === 1 ? firstPage : await fetchReportPage(page);
+				const pageReports = getReportRows(pageData);
+				if (!pageReports.length) break;
+				const signature = pageReports.map((report) => report.id ?? JSON.stringify(report)).join("|");
+				if (seenPageSignatures.has(signature)) break;
+				seenPageSignatures.add(signature);
+				allReports.push(...pageReports);
+				if (pageReports.length < REPORTS_PER_PAGE) break;
+			}
+			const reportTimestamp = (report: CompetitiveUpload) => {
+				const value = (report as any).dateCaptured ?? (report as any).uploadedAt ?? (report as any).createdAt;
+				const timestamp = value ? new Date(value).getTime() : 0;
+				return Number.isFinite(timestamp) ? timestamp : 0;
+			};
+			allReports.sort((a, b) => reportTimestamp(b) - reportTimestamp(a));
+			const responseData = { ...firstPage };
+			const reports = allReports.slice((currentPage - 1) * REPORTS_PER_PAGE, currentPage * REPORTS_PER_PAGE);
 			const reportsWithAddress = await Promise.all(
 				reports.map(async (report) => {
 					const LatLng = JSON.parse(report?.geolocations);
@@ -123,7 +143,7 @@ export default function CompetitiveReportTable() {
 				})
 			);
 
-			return { ...responseData, reports: reportsWithAddress };
+			return { ...responseData, reports: reportsWithAddress, sortedTotalRecords: allReports.length };
 		},
 		retry: false,
 	});
@@ -132,6 +152,7 @@ export default function CompetitiveReportTable() {
 
 	const totalPages = getReportTotalPages(data, dataToDisplay.length, currentPage);
 	const totalUploads =
+		data?.sortedTotalRecords ??
 		data?.pagination?.totalRecords ??
 		data?.totalRecords ??
 		data?.totalCount ??
